@@ -1,0 +1,14 @@
+{
+  "name": "mcd-nutrition-assistant-vercel",
+  "version": "1.0.0",
+  "private": true,
+  "description": "麦门营养管家 Vercel 部署版：静态主页 + /api/mcp 官方 MCP 代理（零第三方依赖）",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node mcp-proxy.js",
+    "dev": "node mcp-proxy.js"
+  }
+}

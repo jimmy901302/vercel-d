@@ -1,0 +1,1254 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>麦门营养管家 · 麦当劳 MCP 实时版</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23C8102E'/%3E%3Ctext x='32' y='42' font-size='30' text-anchor='middle' fill='%23FFC72C' font-family='sans-serif' font-weight='bold'%3EM%3C/text%3E%3C/svg%3E">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  :root {
+    --red: #C8102E;
+    --red-deep: #9E0B22;
+    --gold: #FFC72C;
+    --gold-deep: #F2A93B;
+    --ink: #2B2118;
+    --muted: #8A7D6F;
+    --line: #EDE6DA;
+    --bg: #F6F2E9;
+    --card: #FFFFFF;
+    --green: #2E7D32;
+    --green-soft: #E8F5E9;
+    --orange: #C9640F;
+    --orange-soft: #FFF3E0;
+    --blue: #1565C0;
+    --blue-soft: #E8F1FA;
+  }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    font-family: "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.55;
+  }
+
+  .page { max-width: 1160px; margin: 0 auto; padding: 0 20px 40px; }
+
+  /* ===== MCP 顶栏 ===== */
+  .mcpbar {
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    flex-wrap: wrap; background: #14140F; color: var(--gold);
+    font-size: 12px; font-weight: 700; padding: 8px 16px;
+    border-radius: 0 0 12px 12px; text-align: center;
+  }
+  .mcpbar .dot { width: 7px; height: 7px; border-radius: 50%; background: #888; transition: background .2s; }
+  .mcpbar .dot.on { background: #3DDC84; box-shadow: 0 0 6px #3DDC84; }
+  .mcpbar code { background: rgba(255,199,44,.14); border-radius: 5px; padding: 1px 7px; font-family: Consolas, monospace; font-size: 11px; }
+  .mcpbar .connect {
+    border: none; background: var(--gold); color: #5A2D00; border-radius: 999px;
+    padding: 4px 14px; font-size: 12px; font-weight: 800; cursor: pointer; font-family: inherit; min-height: 30px;
+  }
+  .mcpbar .connect:hover { opacity: .92; }
+
+  /* ===== 品牌头部 ===== */
+  .brand {
+    background: linear-gradient(135deg, var(--red) 0%, var(--red-deep) 100%);
+    padding: 18px 22px; color: #fff; display: flex; justify-content: space-between;
+    align-items: center; border-radius: 0 0 16px 16px; flex-wrap: wrap; gap: 12px;
+  }
+  .brand .me { display: flex; align-items: center; gap: 12px; }
+  .brand .logo { width: 50px; height: 50px; border-radius: 13px; background: var(--gold); color: var(--red); display: flex; align-items: center; justify-content: center; font-size: 30px; font-weight: 900; box-shadow: 0 4px 10px rgba(0,0,0,.25); }
+  .brand .name { font-size: 21px; font-weight: 800; letter-spacing: .3px; }
+  .brand .sub { font-size: 13px; opacity: .85; margin-top: 3px; }
+  .brand .points { background: rgba(255,255,255,.16); border: 1px solid rgba(255,255,255,.3); border-radius: 999px; padding: 7px 14px; font-size: 12px; font-weight: 700; color: var(--gold); white-space: nowrap; cursor: pointer; font-family: inherit; }
+  .brand .points:hover { background: rgba(255,255,255,.24); }
+
+  /* ===== 顶部 tab ===== */
+  .tabs { display: flex; background: var(--card); padding: 0 8px; border-bottom: 1px solid var(--line); border-radius: 0 0 12px 12px; margin-bottom: 18px; }
+  .tabs button { flex: 1; border: none; background: none; padding: 14px 0 12px; font-size: 15px; font-weight: 600; color: var(--muted); cursor: pointer; border-bottom: 2.5px solid transparent; font-family: inherit; min-height: 46px; max-width: 200px; margin: 0 auto; }
+  .tabs button.on { color: var(--red); border-bottom-color: var(--red); font-weight: 800; }
+
+  /* ===== 促销卡 ===== */
+  .promos { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin-bottom: 14px; }
+  .promo { border-radius: 16px; padding: 18px; min-height: 150px; position: relative; overflow: hidden; display: flex; flex-direction: column; justify-content: space-between; }
+  .promo .ptag { font-size: 11px; font-weight: 800; letter-spacing: 1px; padding: 3px 9px; border-radius: 999px; align-self: flex-start; }
+  .promo .ptitle { font-size: 21px; font-weight: 800; line-height: 1.3; margin-top: 8px; }
+  .promo .psub { font-size: 12px; opacity: .85; margin-top: 5px; }
+  .promo .go { align-self: flex-end; border: none; border-radius: 999px; padding: 8px 20px; font-size: 13px; font-weight: 800; cursor: pointer; font-family: inherit; min-height: 40px; }
+  .promo.pix { background: #14140F; color: var(--gold); }
+  .promo.pix::before { content: ""; position: absolute; inset: 0; background-image: repeating-linear-gradient(0deg, rgba(255,199,44,.07) 0 1px, transparent 1px 5px), repeating-linear-gradient(90deg, rgba(255,199,44,.05) 0 1px, transparent 1px 7px); pointer-events: none; }
+  .promo.pix .ptag { background: var(--gold); color: #14140F; }
+  .promo.pix .go { background: var(--gold); color: #14140F; }
+  .promo.sea { background: linear-gradient(160deg, #0E6FA8 0%, #0A4D75 100%); color: #fff; }
+  .promo.sea .ptag { background: rgba(255,255,255,.22); color: #fff; }
+  .promo.sea .go { background: var(--gold); color: #5A2D00; }
+  .promo .price { font-size: 24px; font-weight: 900; margin-top: 8px; }
+  .promo .price small { font-size: 13px; font-weight: 600; opacity: .85; }
+  .promo .bubble { position: absolute; right: -16px; top: -16px; width: 110px; height: 110px; border-radius: 50%; background: rgba(255,255,255,.1); }
+
+  /* ===== MCP 链路卡 ===== */
+  .mcpchain { background: var(--card); border-radius: 16px; margin-bottom: 14px; padding: 14px 16px; box-shadow: 0 2px 8px rgba(43,33,24,.05); }
+  .mcpchain .ch { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .mcpchain .ch b { font-size: 14px; color: var(--red); }
+  .mcpchain .steps { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+  .mcpchain .step { background: var(--bg); border: 1px solid var(--line); border-radius: 999px; padding: 5px 12px; font-size: 12px; font-weight: 700; color: var(--ink); font-family: Consolas, monospace; }
+  .mcpchain .arrow { color: var(--muted); font-weight: 900; }
+
+  /* ===== 实时数据面板 ===== */
+  .livepanel { background: var(--card); border-radius: 16px; margin-bottom: 14px; padding: 16px 18px; box-shadow: 0 2px 8px rgba(43,33,24,.05); border: 1.5px solid var(--blue-soft); }
+  .livepanel .ph { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+  .livepanel .ph h2 { font-size: 16px; font-weight: 800; color: var(--blue); }
+  .livepanel .ph .src { font-size: 11px; font-weight: 700; padding: 4px 11px; border-radius: 999px; }
+  .src.offline { background: #EFEFEF; color: #777; }
+  .src.live { background: var(--green-soft); color: var(--green); }
+  .livepanel .hint { font-size: 12px; color: var(--muted); margin-bottom: 10px; }
+  .livepanel .hint b { color: var(--blue); }
+  .couponchips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+  .couponchips .cc { background: var(--gold-soft, #FFF4D6); border: 1px solid #F2D89B; color: #7A4A00; border-radius: 999px; padding: 6px 13px; font-size: 12px; font-weight: 700; }
+  .couponchips .cc .st { font-size: 10px; opacity: .8; margin-left: 4px; }
+  .nutristat { font-size: 12px; color: var(--muted); margin-top: 8px; }
+  .nutristat b { color: var(--green); }
+  .menuform { display: grid; grid-template-columns: 1.2fr 1.2fr auto; gap: 10px; align-items: end; margin-top: 12px; }
+  .menuform label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+  .menuform input, .menuform select { width: 100%; min-width: 0; padding: 9px 11px; border: 1.5px solid var(--line); border-radius: 10px; font-size: 14px; font-family: inherit; background: #FFFDF8; }
+  .menuform .mbtn { border: none; background: var(--blue); color: #fff; border-radius: 10px; padding: 0 18px; min-height: 40px; font-size: 13px; font-weight: 800; cursor: pointer; font-family: inherit; }
+  .menuform .mbtn:hover { opacity: .92; }
+  .menuform .mbtn.ghost { background: var(--card); color: var(--blue); border: 1.5px solid var(--blue); }
+  .menuresult { font-size: 12px; color: var(--muted); margin-top: 8px; }
+  .menuresult b { color: var(--blue); }
+
+  /* ===== 功能网格 ===== */
+  .grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; background: var(--card); border-radius: 16px; margin-bottom: 14px; padding: 16px 10px 12px; box-shadow: 0 2px 8px rgba(43,33,24,.05); }
+  .grid .cell { display: flex; flex-direction: column; align-items: center; gap: 7px; font-size: 12px; color: var(--ink); font-weight: 600; cursor: pointer; border: none; background: none; font-family: inherit; padding: 4px 0; min-height: 58px; }
+  .grid .cell:hover .ico { transform: translateY(-2px); }
+  .grid .cell .ico { width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; transition: transform .12s ease; }
+  .c-red { background: #FDECEF; color: var(--red); }
+  .c-gold { background: #FFF4D6; color: #B8860B; }
+  .c-green { background: var(--green-soft); color: var(--green); }
+  .c-orange { background: var(--orange-soft); color: var(--orange); }
+  .c-blue { background: #E8F1FA; color: #1565C0; }
+
+  /* ===== 门店栏 ===== */
+  .store { display: flex; justify-content: space-between; align-items: center; background: var(--card); border-radius: 14px; margin-bottom: 14px; padding: 13px 16px; box-shadow: 0 2px 8px rgba(43,33,24,.05); }
+  .store .nm { font-size: 15px; font-weight: 800; }
+  .store .nm small { display: block; font-size: 12px; font-weight: 400; color: var(--muted); margin-top: 2px; }
+  .store .sw { font-size: 13px; color: var(--red); font-weight: 700; cursor: pointer; border: none; background: none; font-family: inherit; min-height: 44px; }
+
+  /* ===== 点餐参数卡 ===== */
+  .panel { background: var(--card); border-radius: 16px; margin-bottom: 14px; padding: 18px; box-shadow: 0 2px 8px rgba(43,33,24,.05); }
+  .panel .ph { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; gap: 10px; flex-wrap: wrap; }
+  .panel .ph h2 { font-size: 17px; font-weight: 800; color: var(--red); }
+  .panel .ph .pill { font-size: 11px; font-weight: 700; color: #7A4A00; background: #FFF4D6; border-radius: 999px; padding: 4px 11px; }
+  .inputs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .field label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: var(--muted); }
+  .field label .hint { font-weight: 400; color: #B5A896; font-size: 11px; }
+  .field input { width: 100%; min-width: 0; padding: 11px 12px; border: 1.5px solid var(--line); border-radius: 12px; font-size: 16px; color: var(--ink); background: #FFFDF8; font-family: inherit; }
+  .field input:focus { outline: none; border-color: var(--red); background: #fff; }
+  .actions { display: flex; gap: 12px; margin-top: 16px; }
+  .btn { min-height: 48px; padding: 0 24px; border: none; border-radius: 999px; font-size: 15px; font-weight: 800; cursor: pointer; font-family: inherit; transition: transform .1s ease, opacity .15s ease; }
+  .btn:active { transform: scale(.97); }
+  .btn-gold { background: var(--gold); color: #5A2D00; flex: 1; }
+  .btn-gold:hover { opacity: .92; }
+  .btn-line { background: var(--card); color: var(--red); border: 1.5px solid var(--red); }
+
+  /* ===== 结果区 ===== */
+  .summary { display: flex; gap: 12px; margin-bottom: 14px; }
+  .stat { flex: 1; background: var(--card); border-radius: 14px; padding: 12px 14px; box-shadow: 0 2px 8px rgba(43,33,24,.05); }
+  .stat .num { font-size: 22px; font-weight: 900; color: var(--red); }
+  .stat .num small { font-size: 12px; font-weight: 600; color: var(--muted); }
+  .stat .lbl { font-size: 12px; color: var(--muted); margin-top: 3px; }
+  .stat.ok .num { color: var(--green); }
+  .stat.warn .num { color: var(--orange); }
+
+  .plans { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 14px; }
+  .plan { background: var(--card); border: 1.5px solid var(--line); border-radius: 16px; padding: 16px; display: flex; flex-direction: column; box-shadow: 0 2px 8px rgba(43,33,24,.05); }
+  .plan.top { border-color: var(--red); box-shadow: 0 4px 14px rgba(200,16,46,.14); }
+  .plan .tag { align-self: flex-start; font-size: 12px; font-weight: 800; padding: 3px 10px; border-radius: 999px; background: #FFF4D6; color: #7A4A00; margin-bottom: 8px; }
+  .plan.top .tag { background: var(--red); color: #fff; }
+  .plan h3 { font-size: 17px; font-weight: 800; margin-bottom: 2px; }
+  .plan .sub { font-size: 12px; color: var(--muted); margin-bottom: 12px; }
+  .plan .price-row { display: flex; align-items: baseline; gap: 8px; margin-bottom: 3px; flex-wrap: wrap; }
+  .plan .pay { font-size: 24px; font-weight: 900; color: var(--red); }
+  .plan .pay small { font-size: 13px; font-weight: 600; color: var(--muted); }
+  .plan .orig { font-size: 12px; color: var(--muted); text-decoration: line-through; }
+  .plan .save { font-size: 12px; font-weight: 800; color: var(--green); margin-bottom: 10px; }
+  .plan ul.items { list-style: none; font-size: 13px; margin-bottom: 10px; flex: 1; }
+  .plan ul.items li { padding: 5px 0; border-bottom: 1px dashed var(--line); display: flex; justify-content: space-between; gap: 8px; }
+  .plan ul.items li:last-child { border-bottom: none; }
+  .plan ul.items .q { color: var(--muted); font-size: 12px; }
+  .plan ul.items .p { white-space: nowrap; }
+  .plan ul.items .cp { color: var(--green); font-weight: 600; font-size: 12px; display: block; }
+  .plan ul.items .off { color: var(--blue); font-weight: 600; font-size: 11px; display: block; }
+  .nutri { display: flex; gap: 10px; flex-wrap: wrap; background: var(--bg); border-radius: 10px; padding: 9px 11px; font-size: 12px; }
+  .nutri span { display: flex; align-items: center; gap: 3px; }
+  .nutri .ok { color: var(--green); font-weight: 800; }
+  .nutri .over { color: var(--orange); font-weight: 800; }
+  .nutri b { color: var(--ink); font-weight: 700; }
+
+  .bars { background: var(--card); border-radius: 16px; margin-bottom: 14px; padding: 18px; box-shadow: 0 2px 8px rgba(43,33,24,.05); }
+  .bars h2 { font-size: 16px; font-weight: 800; margin-bottom: 14px; color: var(--red); }
+  .bar-row { margin-bottom: 14px; }
+  .bar-row .bar-lbl { display: flex; justify-content: space-between; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+  .bar-row .bar-lbl .limit { color: var(--muted); font-weight: 400; font-size: 12px; }
+  .bar-track { height: 22px; background: var(--bg); border-radius: 6px; overflow: hidden; display: flex; }
+  .bar-seg { height: 100%; display: flex; align-items: center; justify-content: flex-end; padding-right: 6px; font-size: 11px; font-weight: 700; color: #fff; min-width: 38px; }
+  .bar-seg.s-cheapest { background: #C8102E; }
+  .bar-seg.s-best { background: #E2572C; }
+  .bar-seg.s-richest { background: #F2A93B; }
+  .bar-limit { height: 22px; border-left: 2px dashed var(--ink); margin-top: -22px; }
+  .bar-legend { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 8px; font-size: 12px; color: var(--muted); }
+  .bar-legend i { display: inline-block; width: 11px; height: 11px; border-radius: 3px; margin-right: 4px; vertical-align: -1px; }
+
+  .traps { background: var(--card); border-radius: 16px; margin-bottom: 14px; padding: 18px; box-shadow: 0 2px 8px rgba(43,33,24,.05); }
+  .traps h2 { font-size: 16px; font-weight: 800; margin-bottom: 12px; color: var(--red); }
+  .trap { display: flex; gap: 10px; padding: 11px 13px; border-radius: 12px; margin-bottom: 8px; font-size: 13px; }
+  .trap:last-child { margin-bottom: 0; }
+  .trap .ic { flex: 0 0 24px; font-size: 13px; text-align: center; font-weight: 900; }
+  .trap .body b { font-size: 13px; }
+  .trap .body .detail { color: var(--muted); font-size: 12px; margin-top: 2px; }
+  .trap.high { background: #FDEAEC; }
+  .trap.high .ic { color: var(--red); }
+  .trap.medium { background: var(--orange-soft); }
+  .trap.medium .ic { color: var(--orange); }
+  .trap.low { background: var(--green-soft); }
+  .trap.low .ic { color: var(--green); }
+  .no-trap { font-size: 13px; color: var(--muted); padding: 5px 2px; }
+
+  .empty { text-align: center; padding: 38px 16px; color: var(--muted); font-size: 14px; }
+  .empty .big { font-size: 42px; margin-bottom: 8px; }
+  .empty .steps { margin-top: 10px; font-size: 12px; color: #B5A896; }
+
+  .note { margin-bottom: 14px; padding: 14px 16px; background: var(--card); border-radius: 14px; font-size: 12px; color: var(--muted); line-height: 1.65; box-shadow: 0 2px 8px rgba(43,33,24,.05); }
+
+  /* ===== 代理/错误横幅（修复：页面经静态服务或 file:// 打开时，实时接口无声失败，用户误以为按钮无反应；用醒目横幅给出明确状态） ===== */
+  .proxywarn { display: none; margin: 0 0 14px; padding: 12px 16px; border-radius: 12px; font-size: 13px; line-height: 1.6; font-weight: 600; }
+  .proxywarn.warn { display: block; background: #FFF3E0; border: 1.5px solid var(--orange); color: #7A3B05; }
+  .proxywarn.err { display: block; background: #FDEAEC; border: 1.5px solid var(--red); color: var(--red-deep); }
+  .proxywarn.ok { display: block; background: var(--green-soft); border: 1.5px solid #A5D6A7; color: var(--green); }
+  .proxywarn b { color: inherit; }
+  .note b { color: var(--red); }
+
+  /* ===== 底部导航 ===== */
+  .tabbar { display: flex; background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 6px; margin-top: 18px; }
+  .tabbar button { flex: 1; border: none; background: none; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 9px 0 8px; font-size: 12px; font-weight: 600; color: var(--muted); cursor: pointer; font-family: inherit; min-height: 54px; border-radius: 12px; }
+  .tabbar button:hover { background: var(--bg); }
+  .tabbar button.on { color: var(--red); font-weight: 800; background: #FDECEF; }
+
+  .view { display: none; }
+  .view.on { display: block; }
+
+  @media (max-width: 860px) {
+    .promos { grid-template-columns: 1fr; }
+    .grid { grid-template-columns: repeat(3, 1fr); }
+    .plans { grid-template-columns: 1fr; }
+    .inputs { grid-template-columns: 1fr; gap: 10px; }
+    .summary { flex-direction: column; }
+    .brand .name { font-size: 18px; }
+    .tabs button { max-width: none; }
+    .menuform { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 480px) {
+    .grid { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- ===== 麦当劳 MCP 顶栏 ===== -->
+  <div class="mcpbar">
+    <span class="dot" id="liveDot"></span>
+    <span>实时数据：<span id="liveStatus">未连接</span></span>
+    <code>https://mcp.mcd.cn</code>
+    <button class="connect" id="connectBtn" type="button">连接实时数据</button>
+  </div>
+
+  <!-- 修复：代理状态/错误横幅，打开方式不对或接口失败时给出醒目提示，避免“点击无反应”的误判 -->
+  <div class="proxywarn" id="proxyWarn"></div>
+
+  <!-- ===== 品牌头部 ===== -->
+  <div class="brand">
+    <div class="me">
+      <div class="logo">M</div>
+      <div>
+        <div class="name">麦门营养管家</div>
+        <div class="sub">预算内最划算 · 热量内最健康 · 实时接入官方 MCP</div>
+      </div>
+    </div>
+    <button class="points" id="pointsBtn" type="button">0 积分 · 抽好礼 ›</button>
+  </div>
+
+  <!-- ===== 顶部 tab ===== -->
+  <div class="tabs" id="topTabs">
+    <button data-view="home" class="on" type="button">点餐省钱</button>
+    <button data-view="nutrition" type="button">营养对比</button>
+    <button data-view="traps" type="button">凑单陷阱</button>
+  </div>
+
+  <div id="view-home" class="view on">
+
+    <!-- ===== 促销像素卡 ===== -->
+    <div class="promos">
+      <div class="promo pix">
+        <div class="ptag">1024 程序员节 · 营养挑战</div>
+        <div class="ptitle">控卡点餐挑战<br>预算内 · 热量内最健康</div>
+        <div class="psub">输入预算与营养目标，一键算出最优方案</div>
+        <button class="go" id="goCalc" type="button">开始体验</button>
+        <div class="bubble" aria-hidden="true"></div>
+      </div>
+      <div class="promo sea">
+        <div class="ptag">麦门营养管家</div>
+        <div class="ptitle">双目标比价<br>省钱 × 营养</div>
+        <div class="price">¥26.0<small> 起 · 示例数据</small></div>
+        <button class="go" id="goDemo" type="button">填入示例</button>
+        <div class="bubble" aria-hidden="true"></div>
+      </div>
+    </div>
+
+    <!-- ===== MCP 实时链路 ===== -->
+    <div class="mcpchain">
+      <div class="ch"><b>麦当劳 MCP 实时链路</b><span style="font-size:12px;color:var(--muted)">数据经本地代理转发，Token 不进浏览器</span></div>
+      <div class="steps">
+        <span class="step">available-coupons</span><span class="arrow">→</span>
+        <span class="step">query-meals</span><span class="arrow">→</span>
+        <span class="step">list-nutrition-foods</span><span class="arrow">→</span>
+        <span class="step">calculate-price</span><span class="arrow">→</span>
+        <span class="step">create-order</span>
+      </div>
+    </div>
+
+    <!-- ===== 实时数据面板 ===== -->
+    <div class="livepanel">
+      <div class="ph">
+        <h2>实时官方数据</h2>
+        <span class="src offline" id="srcBadge">数据源：离线示例</span>
+      </div>
+      <div class="hint">
+        点击右上角「<b>连接实时数据</b>」：经本地代理拉取 <b>官方营养(list-nutrition-foods)</b> 与 <b>可领券(available-coupons)</b>。
+        下方可加载 <b>实时门店菜单(query-nearby-stores / query-meals)</b>（依赖定位，失败自动回退离线）。
+      </div>
+
+      <div id="liveCouponsWrap" style="display:none">
+        <div style="font-size:13px;font-weight:700;margin-bottom:6px;color:var(--blue)">当前可领券（实时）</div>
+        <div class="couponchips" id="liveCoupons"></div>
+      </div>
+      <div class="nutristat" id="nutriStat"></div>
+
+      <div class="menuform">
+        <div>
+          <label for="cityInput">城市（实时菜单用）</label>
+          <input id="cityInput" type="text" placeholder="如 上海" value="上海">
+        </div>
+        <div>
+          <label for="kwInput">商圈 / 地标关键词</label>
+          <input id="kwInput" type="text" placeholder="如 人民广场" value="人民广场">
+        </div>
+        <button class="mbtn" id="menuBtn" type="button">加载实时菜单</button>
+      </div>
+      <div class="menuform" style="grid-template-columns: 1fr auto;margin-top:8px;align-items:center">
+        <select id="storeSelect" disabled><option>先点「加载实时菜单」</option></select>
+        <button class="mbtn ghost" id="useStoreBtn" type="button" disabled>用该门店算价</button>
+      </div>
+      <div class="menuresult" id="menuResult"></div>
+    </div>
+
+    <!-- ===== 功能网格 ===== -->
+    <div class="grid">
+      <button class="cell" type="button" data-nav="goCalc"><span class="ico c-red"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4V2M10 4V2M8 8h8v10a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2V8z"/><path d="M12 11v5"/><path d="M8 20h8"/></svg></span>营养搭配</button>
+      <button class="cell" type="button" data-nav="goCalc"><span class="ico c-gold"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H8a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2z"/><path d="M12 18h.01"/></svg></span>领券省钱</button>
+      <button class="cell" type="button" data-nav="goTrap"><span class="ico c-orange"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l9 5v5c0 5-3.5 8.5-9 10-5.5-1.5-9-5-9-10V7z"/><path d="M9 12l2 2 4-4"/></svg></span>凑单陷阱</button>
+      <button class="cell" type="button" data-nav="goCalc"><span class="ico c-green"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 0 1 10 10c0 4-2.5 7.5-6 9v-3a6 6 0 0 0-8 0v3c-3.5-1.5-6-5-6-9A10 10 0 0 1 12 2z"/><circle cx="9" cy="10" r="1.2" fill="currentColor"/><circle cx="15" cy="10" r="1.2" fill="currentColor"/></svg></span>一键下单</button>
+      <button class="cell" type="button" data-nav="goCalc"><span class="ico c-blue"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="3"/><path d="M8 2v4M16 2v4M3 10h18"/></svg></span>活动日历</button>
+    </div>
+
+    <!-- ===== 门店栏 ===== -->
+    <div class="store">
+      <div class="nm" id="storeName">离线示例门店<small id="storeSub">演示数据 · 连接实时后切换为真实门店</small></div>
+      <button class="sw" id="storeBtn" type="button">切换门店 ›</button>
+    </div>
+
+    <!-- ===== 点餐参数 ===== -->
+    <section class="panel" aria-label="参数输入">
+      <div class="ph">
+        <h2>点餐参数</h2>
+        <span class="pill" id="dataPill">离线示例 · 无需 Token</span>
+      </div>
+      <div class="inputs">
+        <div class="field">
+          <label for="budget">总预算（元）</label>
+          <input id="budget" type="number" inputmode="decimal" min="0" step="0.5" placeholder="如 40" value="40">
+        </div>
+        <div class="field">
+          <label for="kcal">热量上限 <span class="hint">可留空</span></label>
+          <input id="kcal" type="number" inputmode="decimal" min="0" step="10" placeholder="如 700">
+        </div>
+        <div class="field">
+          <label for="protein">蛋白下限 <span class="hint">可留空</span></label>
+          <input id="protein" type="number" inputmode="decimal" min="0" step="1" placeholder="如 25">
+        </div>
+      </div>
+      <div class="actions">
+        <button class="btn btn-gold" id="runBtn" type="button">计算最优方案</button>
+        <button class="btn btn-line" id="demoBtn" type="button">填入示例</button>
+      </div>
+    </section>
+
+    <div id="result"></div>
+
+    <div class="note">
+      <b>说明：</b>本页为「麦门营养管家」WorkBuddy Skill 的<b>实时演示</b>。默认使用与 <b>scripts/save_optimizer.py</b> 一致的离线示例；
+      点击「连接实时数据」后，<b>营养数据来自官方 list-nutrition-foods、可领券来自 available-coupons</b>，金额与营养以官方接口返回为准。
+      本地代理 <b>mcp-proxy.js</b> 持有 Token，浏览器只与本机通信。
+    </div>
+  </div>
+
+  <!-- ===== 营养对比视图 ===== -->
+  <div id="view-nutrition" class="view">
+    <div class="panel"><div class="ph"><h2>营养对比</h2><span class="pill">切换方案维度</span></div>
+    <div class="bars" id="barsHolder" style="margin:0;box-shadow:none;"></div></div>
+    <div class="note"><b>读法：</b>条长代表总热量/总蛋白，虚线为你的约束上限/下限；「每元蛋白」越高，同样的钱买到越多蛋白质。</div>
+  </div>
+
+  <!-- ===== 凑单陷阱视图 ===== -->
+  <div id="view-traps" class="view">
+    <div class="panel"><div class="ph"><h2>凑单陷阱提示</h2><span class="pill">省钱防坑</span></div>
+    <div id="trapsHolder" style="padding:0;"></div></div>
+    <div class="note"><b>三类陷阱：</b>① 用券反而更贵（券固定价 &gt; 现价）② 无优惠凑单小食 ③ 预算没花满。</div>
+  </div>
+
+  <!-- ===== 我的视图 ===== -->
+  <div id="view-mine" class="view">
+    <div class="mine-card">
+      <div class="row">
+        <div class="avatar">M</div>
+        <div><div class="nm">麦门营养管家</div><div class="mb">积分会员</div></div>
+        <div class="pts">0 积分</div>
+      </div>
+      <div class="coupons">
+        <div class="cp"><b>0</b><span>到店券</span></div>
+        <div class="cp"><b>0</b><span>外送券</span></div>
+        <div class="cp"><b>0</b><span>送卡券</span></div>
+        <div class="cp"><b>2</b><span>兑换券</span></div>
+      </div>
+      <div class="wallet">
+        <div class="bal"><span>钱包余额</span><b>¥0.00</b></div>
+        <button class="pay" id="walletPay" type="button">付款</button>
+      </div>
+    </div>
+    <div class="mine-card">
+      <ul class="list2">
+        <li>我的订单 <span class="go">›</span></li>
+        <li>我的收藏 <span class="go">›</span></li>
+        <li>发票管理 <span class="go">›</span></li>
+        <li>我的地址 <span class="go">›</span></li>
+        <li>车辆管理 <span class="go">›</span></li>
+        <li>学生专属 <span class="go">›</span></li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ===== 底部导航 ===== -->
+  <div class="tabbar" id="tabbar">
+    <button data-tab="home" class="on" type="button"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>首页</button>
+    <button data-tab="nutrition" type="button"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-4.5-9.5-9A5.5 5.5 0 0 1 12 6a5.5 5.5 0 0 1 9.5 6c-2.5 4.5-9.5 9-9.5 9z"/></svg>方案</button>
+    <button data-tab="traps" type="button"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l9 5v5c0 5-3.5 8.5-9 10-5.5-1.5-9-5-9-10V7z"/><path d="M9 12l2 2 4-4"/></svg>陷阱</button>
+    <button data-tab="mine" type="button"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 0 1 10 10c0 4-2.5 7.5-6 9v-3a6 6 0 0 0-8 0v3c-3.5-1.5-6-5-6-9A10 10 0 0 1 12 2z"/><circle cx="9" cy="10" r="1.2" fill="currentColor"/><circle cx="15" cy="10" r="1.2" fill="currentColor"/></svg>我的</button>
+  </div>
+
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ============ 修复：全局错误兜底 ============
+   * 原因：若脚本初始化阶段抛错，后续所有 addEventListener 都不会执行，
+   *       表现为“点击按钮无反应、提交渲染无提示”且无任何报错信息。
+   * 修复：捕获未处理异常并显示醒目横幅，便于定位，而不是直接静默失效。 */
+  var proxyWarnEl = null;
+  function showProxyWarn(kind, html) {
+    if (!proxyWarnEl) proxyWarnEl = document.getElementById("proxyWarn");
+    if (!proxyWarnEl) return;
+    proxyWarnEl.className = "proxywarn " + (kind || "warn");
+    proxyWarnEl.innerHTML = html;
+    proxyWarnEl.style.display = "block";
+  }
+  function hideProxyWarn() {
+    if (!proxyWarnEl) proxyWarnEl = document.getElementById("proxyWarn");
+    if (proxyWarnEl) { proxyWarnEl.style.display = "none"; proxyWarnEl.innerHTML = ""; }
+  }
+  window.addEventListener("error", function (ev) {
+    // 仅兜底展示脚本级错误，避免静默失效让用户以为页面坏了
+    showProxyWarn("err", "⚠ 页面脚本出错：" + (ev.message || "未知错误") + "（行 " + (ev.lineno || "?") + "）。");
+  });
+
+  /* ============ 修复：加载即探测本地代理可用性 ============
+   * 原因：页面实时功能依赖同源的 /api/mcp；若经静态服务或 file:// 直接打开，
+   *       该接口不存在，连接会“无声失败”，造成按钮像没反应的错觉。
+   * 修复：加载时用 now-time-info 探一下代理，失败则显示醒目横幅说明现状，
+   *       同时告知离线功能仍可正常使用。 */
+  async function checkProxy() {
+    if (!proxyWarnEl) proxyWarnEl = document.getElementById("proxyWarn");
+    try {
+      var ctl = new AbortController();
+      var timer = setTimeout(function () { ctl.abort(); }, 5000);
+      var resp = await fetch("/api/mcp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: "now-time-info", arguments: {} }),
+        signal: ctl.signal
+      });
+      clearTimeout(timer);
+      var j = await resp.json();
+      if (j && j.ok) {
+        hideProxyWarn();
+        return true;
+      }
+      showProxyWarn("warn", "⚠ 本地代理已连，但返回错误：" + (j.error || "未知") +
+        "。实时数据暂不可用，<b>离线示例模式</b>下比价 / 营养对比 / Tab 等功能可正常使用。");
+      return false;
+    } catch (e) {
+      showProxyWarn("warn", "⚠ 未检测到本地代理（mcp-proxy.js）。<b>实时官方数据不可用</b>；" +
+        "<b>离线示例模式</b>下比价 / 营养对比 / Tab 等功能可正常使用。" +
+        "如需实时数据：先运行 <b>node mcp-proxy.js</b>，再用 <b>http://localhost:8787/</b> 打开本页。");
+      return false;
+    }
+  }
+
+  /* ============ 离线示例样本（对齐 samples/meals_sample.json 与 coupons_sample.json） ============ */
+  var MEALS = {
+    "920215": {"name": "培根安格斯厚牛堡大套餐", "currentPrice": "55.5", "originalPrice": "65.5", "discountType": "随单购麦金卡优惠", "kcal": 890, "protein": 41.0},
+    "9900008169": {"name": "双层深海鳕鱼堡", "currentPrice": "25", "originalPrice": "26.5", "discountType": "促销优惠", "kcal": 480, "protein": 22.0},
+    "520860": {"name": "咔滋咔滋脆鸡腿堡", "currentPrice": "26", "originalPrice": "26", "discountType": null, "kcal": 540, "protein": 25.0},
+    "6102": {"name": "苹果片一袋(60g)", "currentPrice": "7", "originalPrice": "7", "discountType": null, "kcal": 100, "protein": 0.5},
+    "920216": {"name": "麦辣鸡腿堡套餐", "currentPrice": "33", "originalPrice": "38", "discountType": "促销优惠", "kcal": 800, "protein": 26.0},
+    "920217": {"name": "中薯条", "currentPrice": "12", "originalPrice": "12", "discountType": null, "kcal": 340, "protein": 4.0},
+    "920218": {"name": "可乐中杯", "currentPrice": "8", "originalPrice": "8", "discountType": null, "kcal": 190, "protein": 0.0}
+  };
+  var COUPONS = [
+    {"title": "9.9元薯你最甜", "couponId": "A1", "couponCode": "MCD001", "price": "9.9", "products": [{"productCode": "920217", "productName": "中薯条"}]},
+    {"title": "板烧鸡腿堡立减5元", "couponId": "A2", "couponCode": "MCD002", "products": [{"productCode": "9900008169", "productName": "双层深海鳕鱼堡"}]}
+  ];
+
+  /* ============ 实时状态 ============ */
+  var LIVE = {
+    connected: false,
+    coupons: [],          // 实时可领券（展示用）
+    nutrition: {},        // 官方营养 name -> {kcal, protein}
+    meals: null,          // 实时菜单（覆盖 MEALS）
+    storeName: null
+  };
+
+  var MAIN_KEYWORDS = ["堡", "套餐", "鸡", "鱼", "牛", "派", "麦满分", "巨无霸", "卷", "饭", "翅", "桶"];
+
+  function isMainItem(name) {
+    for (var i = 0; i < MAIN_KEYWORDS.length; i++) {
+      if (name.indexOf(MAIN_KEYWORDS[i]) !== -1) return true;
+    }
+    return false;
+  }
+
+  function parsePrice(v) {
+    var n = parseFloat(v);
+    return isNaN(n) ? 0 : Math.round(n * 100);
+  }
+
+  /* ============ 实时数据解析 ============ */
+  function parseNutrition(text) {
+    var map = {};
+    if (!text) return map;
+    var lines = text.split("\n");
+    var headerSeen = false;
+    for (var i = 0; i < lines.length; i++) {
+      var line = lines[i].trim();
+      if (!line) continue;
+      if (!headerSeen) {
+        // 跳过表头行：含 productName 或形如 [n]{...}
+        if (line.indexOf("productName") !== -1 || /^\[\d+\]\{/.test(line)) { headerSeen = true; continue; }
+        continue;
+      }
+      // 数据行：名称,desc,kj,kcal,protein,fat,carb,sodium,calcium
+      var parts = line.split(",");
+      if (parts.length < 5) continue;
+      var name = parts[0].trim();
+      var kcal = parseFloat(parts[3]);
+      var protein = parseFloat(parts[4]);
+      if (!name || isNaN(kcal)) continue;
+      map[name] = { kcal: Math.round(kcal), protein: isNaN(protein) ? 0 : Math.round(protein * 10) / 10 };
+    }
+    return map;
+  }
+
+  function matchNutrition(mealName, map) {
+    if (map[mealName]) return map[mealName];
+    var trimmed = mealName.replace(/\(.*?\)/g, "").replace(/大套餐|套餐/g, "").trim();
+    if (map[trimmed]) return map[trimmed];
+    var keys = Object.keys(map);
+    for (var i = 0; i < keys.length; i++) {
+      var k = keys[i];
+      if (mealName.indexOf(k) !== -1 || (trimmed && k.indexOf(trimmed) !== -1)) return map[k];
+    }
+    return null;
+  }
+
+  function applyLiveNutrition(base) {
+    if (!LIVE.connected || !Object.keys(LIVE.nutrition).length) return base;
+    var out = {};
+    Object.keys(base).forEach(function (code) {
+      var m = base[code];
+      var nut = matchNutrition(m.name, LIVE.nutrition);
+      if (nut) out[code] = Object.assign({}, m, { kcal: nut.kcal, protein: nut.protein, _official: true });
+      else out[code] = m;
+    });
+    return out;
+  }
+
+  function buildLiveMeals(data) {
+    if (!Array.isArray(data) || !data.length) return null;
+    var out = {}, order = 0, matched = 0;
+    data.forEach(function (it) {
+      var code = it.productCode || it.code || ("L" + (order++));
+      var name = it.productName || it.name;
+      var cur = it.currentPrice != null ? it.currentPrice
+              : it.salePrice != null ? it.salePrice
+              : it.price != null ? it.price : null;
+      var orig = it.originalPrice != null ? it.originalPrice : cur;
+      if (name == null || cur == null) return;
+      var entry = {
+        name: String(name),
+        currentPrice: String(cur),
+        originalPrice: String(orig != null ? orig : cur),
+        discountType: it.discountType || null,
+        kcal: null, protein: null
+      };
+      var nut = matchNutrition(String(name), LIVE.nutrition);
+      if (nut) { entry.kcal = nut.kcal; entry.protein = nut.protein; matched++; }
+      out[code] = entry;
+    });
+    return Object.keys(out).length ? out : null;
+  }
+
+  /* ============ 比价引擎（与 save_optimizer.py 一致） ============ */
+  function buildEffective(meals, coupons) {
+    var result = {};
+    Object.keys(meals).forEach(function (code) {
+      var m = meals[code];
+      var unit = parsePrice(m.currentPrice);
+      var orig = parsePrice(m.originalPrice);
+      if (orig > unit) orig = unit;
+      var entry = {
+        code: code, name: m.name,
+        unit_price_cents: unit, orig_price_cents: orig,
+        discount_type: m.discountType, kcal: m.kcal, protein: m.protein, coupon: null
+      };
+      for (var i = 0; i < coupons.length; i++) {
+        var c = coupons[i];
+        var hit = (c.products || []).some(function (p) { return p.productCode === code; });
+        if (hit) {
+          entry.coupon = {
+            couponId: c.couponId, couponCode: c.couponCode, title: c.title,
+            fixed_price_cents: c.price ? parsePrice(c.price) : null
+          };
+          break;
+        }
+      }
+      result[code] = entry;
+    });
+    return result;
+  }
+
+  function unitOf(e) {
+    return e.coupon && e.coupon.fixed_price_cents ? e.coupon.fixed_price_cents : e.unit_price_cents;
+  }
+
+  function comboCost(combo, effective) {
+    var total = 0, orig = 0, kcal = 0, protein = 0, hasNutri = false, items = [];
+    Object.keys(combo).forEach(function (code) {
+      var qty = combo[code];
+      var e = effective[code];
+      var unit = unitOf(e);
+      total += unit * qty;
+      orig += e.orig_price_cents * qty;
+      if (e.kcal != null) { kcal += e.kcal * qty; hasNutri = true; }
+      if (e.protein != null) protein += e.protein * qty;
+      items.push({
+        name: e.name, quantity: qty, unit_price_yuan: unit / 100,
+        discount_type: e.discount_type, coupon_title: e.coupon ? e.coupon.title : null,
+        official_nutri: e.kcal != null && e._official
+      });
+    });
+    return {
+      items: items, orig_cents: orig, pay_cents: total, save_cents: orig - total,
+      kcal_total: hasNutri ? Math.round(kcal * 10) / 10 : null,
+      protein_total: hasNutri ? Math.round(protein * 10) / 10 : null
+    };
+  }
+
+  function nutritionOk(cost, maxKcal, minProtein) {
+    if (maxKcal != null && cost.kcal_total != null && cost.kcal_total > maxKcal) return false;
+    if (minProtein != null && cost.protein_total != null && cost.protein_total < minProtein) return false;
+    return true;
+  }
+
+  function detectTraps(effective, plans, budgetCents) {
+    var traps = [];
+    var seenCoupon = {};
+    Object.keys(effective).forEach(function (code) {
+      var e = effective[code];
+      var c = e.coupon;
+      if (!c || c.fixed_price_cents == null || e.unit_price_cents <= 0) return;
+      if (c.fixed_price_cents > e.unit_price_cents) {
+        var key = c.couponId || c.title;
+        if (!seenCoupon[key]) {
+          seenCoupon[key] = true;
+          traps.push({
+            type: "coupon_overpriced", severity: "high",
+            title: "用券反而更贵：券「" + c.title + "」固定价 " + (c.fixed_price_cents / 100).toFixed(1) + " 元 > 单品现价 " + (e.unit_price_cents / 100).toFixed(1) + " 元",
+            detail: e.name + " 现价 " + (e.unit_price_cents / 100).toFixed(1) + " 元，该券却按 " + (c.fixed_price_cents / 100).toFixed(1) + " 元结算——别为凑单硬用这张券。"
+          });
+        }
+      }
+    });
+    var labels = { cheapest: "最便宜", best_value: "最划算", richest: "最丰盛" };
+    var seenSide = {};
+    ["cheapest", "best_value", "richest"].forEach(function (planKey) {
+      var plan = plans[planKey];
+      if (!plan) return;
+      plan.items.forEach(function (it) {
+        if (isMainItem(it.name) || seenSide[it.name]) return;
+        var noDiscount = !it.coupon_title && (it.discount_type === null || it.discount_type === "");
+        if (noDiscount) {
+          seenSide[it.name] = true;
+          var save = it.unit_price_yuan * it.quantity;
+          traps.push({
+            type: "side_item", severity: "medium",
+            title: "凑单小食：「" + it.name + "」无任何优惠",
+            detail: "在「" + (labels[planKey] || planKey) + "」方案中，" + it.name + "×" + it.quantity + " 是无券无促销的凑单项；不需要的话可删掉省 " + save.toFixed(1) + " 元。"
+          });
+        }
+      });
+    });
+    var cheapest = plans.cheapest;
+    if (cheapest && budgetCents > 0) {
+      var pay = Math.round(cheapest.pay_total_yuan * 100);
+      var remain = budgetCents - pay;
+      if (remain > 0 && remain >= budgetCents * 0.3) {
+        traps.push({
+          type: "budget_left", severity: "low",
+          title: "预算没花满：最便宜方案只花 " + cheapest.pay_total_yuan.toFixed(1) + " 元，还剩 " + (remain / 100).toFixed(1) + " 元",
+          detail: "可在预算内加购饮料/小食提升体验，或直接选用「最划算 / 最丰盛」方案。"
+        });
+      }
+    }
+    return traps;
+  }
+
+  function recommend(meals, coupons, budgetYuan, maxKcal, minProtein) {
+    var effective = buildEffective(meals, coupons);
+    var codes = Object.keys(effective);
+    var budgetCents = Math.round(budgetYuan * 100);
+    if (budgetCents <= 0) budgetCents = 99999900;
+
+    var feasible = [];
+    codes.forEach(function (code) {
+      var unit = unitOf(effective[code]);
+      if (unit <= 0) return;
+      for (var qty = 1; qty <= 3; qty++) {
+        if (unit * qty <= budgetCents) feasible.push((function () { var o = {}; o[code] = qty; return o; })());
+      }
+    });
+
+    var comboArr = combinations(codes, 2);
+    comboArr = comboArr.concat(combinations(codes, 3));
+    comboArr.forEach(function (combo) {
+      var comboDict = {}, ok = true;
+      combo.forEach(function (code) {
+        var unit = unitOf(effective[code]);
+        if (unit <= 0) { ok = false; return; }
+        comboDict[code] = 1;
+      });
+      if (!ok) return;
+      var total = 0;
+      Object.keys(comboDict).forEach(function (code) { total += unitOf(effective[code]); });
+      if (total <= budgetCents) feasible.push(comboDict);
+    });
+
+    if (!feasible.length) return { error: "预算过低或菜单为空，无法组合出可行方案", feasible_count: 0 };
+
+    var scored = [];
+    feasible.forEach(function (combo) {
+      var cost = comboCost(combo, effective);
+      var ratio = cost.pay_cents > 0 ? cost.orig_cents / cost.pay_cents : 0;
+      scored.push({ combo: combo, cost: cost, ratio: ratio });
+    });
+
+    var seen = {}, unique = [];
+    scored.forEach(function (s) {
+      var key = JSON.stringify(Object.keys(s.combo).sort()) + "|" + s.cost.pay_cents;
+      if (!seen[key]) { seen[key] = true; unique.push(s); }
+    });
+
+    var nutritionPool = unique.filter(function (s) { return nutritionOk(s.cost, maxKcal, minProtein); });
+    var poolBase = nutritionPool.length ? nutritionPool : unique;
+
+    function hasMain(combo) {
+      return Object.keys(combo).some(function (code) { return isMainItem(effective[code].name); });
+    }
+
+    function fmt(plan) {
+      var ppy = null;
+      if (plan.cost.protein_total != null && plan.cost.pay_cents > 0) {
+        ppy = Math.round(plan.cost.protein_total / (plan.cost.pay_cents / 100) * 100) / 100;
+      }
+      return {
+        items: plan.cost.items,
+        orig_total_yuan: plan.cost.orig_cents / 100,
+        pay_total_yuan: plan.cost.pay_cents / 100,
+        save_yuan: plan.cost.save_cents / 100,
+        item_count: Object.keys(plan.combo).reduce(function (a, c) { return a + plan.combo[c]; }, 0),
+        kcal_total: plan.cost.kcal_total,
+        protein_total: plan.cost.protein_total,
+        protein_per_yuan: ppy
+      };
+    }
+
+    var withMain = poolBase.filter(function (s) { return hasMain(s.combo); });
+    var pool = withMain.length ? withMain : poolBase;
+    if (!pool.length) return { error: "预算/营养约束过严，无法组合出可行方案", feasible_count: 0 };
+
+    function minPay(a, b) { return a.cost.pay_cents - b.cost.pay_cents; }
+    function maxRatio(a, b) { return b.ratio - a.ratio; }
+    function maxOrig(a, b) { return b.cost.orig_cents - a.cost.orig_cents; }
+
+    var cheapest = pool.slice().sort(minPay)[0];
+    var bestValue = pool.slice().sort(maxRatio)[0];
+    var richest = pool.slice().sort(maxOrig)[0];
+
+    var plans = {
+      cheapest: fmt(cheapest),
+      best_value: fmt(bestValue),
+      richest: fmt(richest)
+    };
+
+    return {
+      feasible_count: unique.length,
+      nutrition_filtered: nutritionPool.length,
+      nutrition_constraint: {
+        max_kcal: maxKcal,
+        min_protein: minProtein,
+        relaxed: nutritionPool.length === 0 && (maxKcal != null || minProtein != null)
+      },
+      traps: detectTraps(effective, plans, budgetCents),
+      cheapest: plans.cheapest,
+      best_value: plans.best_value,
+      richest: plans.richest
+    };
+  }
+
+  function combinations(arr, k) {
+    var out = [];
+    function pick(start, chosen) {
+      if (chosen.length === k) { out.push(chosen.slice()); return; }
+      for (var i = start; i < arr.length; i++) {
+        chosen.push(arr[i]);
+        pick(i + 1, chosen);
+        chosen.pop();
+      }
+    }
+    pick(0, []);
+    return out;
+  }
+
+  /* ============ 渲染 ============ */
+  var resultEl = document.getElementById("result");
+  var barsHolder = document.getElementById("barsHolder");
+  var trapsHolder = document.getElementById("trapsHolder");
+  var lastResult = null;
+
+  function esc(s) {
+    return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+
+  function renderEmpty() {
+    resultEl.innerHTML =
+      '<div class="empty">' +
+      '<svg viewBox="0 0 64 64" width="52" height="52" style="margin:0 auto 8px;display:block" aria-hidden="true">' +
+      '<rect x="8" y="26" width="48" height="22" rx="6" fill="#FFC72C"/>' +
+      '<rect x="14" y="20" width="36" height="14" rx="7" fill="#C8102E"/>' +
+      '<rect x="20" y="14" width="10" height="8" rx="2" fill="#C8102E"/>' +
+      '<rect x="34" y="14" width="10" height="8" rx="2" fill="#C8102E"/>' +
+      '<path d="M16 48 v6 M24 48 v6 M32 48 v6 M40 48 v6 M48 48 v6" stroke="#6B5D4F" stroke-width="3" stroke-linecap="round"/>' +
+      '</svg>' +
+      '<div>设置预算与营养目标，点击「计算最优方案」</div>' +
+      '<div class="steps">示例：预算 40 元 · 热量 ≤ 700 kcal · 蛋白 ≥ 25g</div>' +
+      '</div>';
+    barsHolder.innerHTML = '<div class="empty">先在上方输入参数并计算。</div>';
+    trapsHolder.innerHTML = '<div class="empty">先在上方输入参数并计算。</div>';
+  }
+
+  function planCard(key, plan, opts) {
+    var label = opts.label, top = opts.top, maxKcal = opts.maxKcal, minProtein = opts.minProtein;
+    var kcalOk = plan.kcal_total == null || maxKcal == null || plan.kcal_total <= maxKcal;
+    var protOk = plan.protein_total == null || minProtein == null || plan.protein_total >= minProtein;
+    var nutriHtml = "";
+    if (plan.kcal_total != null || plan.protein_total != null) {
+      nutriHtml = '<div class="nutri">';
+      if (plan.kcal_total != null) {
+        nutriHtml += '<span>热量 <b>' + plan.kcal_total + '</b>' +
+          (maxKcal != null ? ' <span class="' + (kcalOk ? "ok" : "over") + '">' + (kcalOk ? "达标" : "超标") + "</span>" : "") +
+          '</span>';
+      }
+      if (plan.protein_total != null) {
+        nutriHtml += '<span>蛋白 <b>' + plan.protein_total + '</b>g' +
+          (minProtein != null ? ' <span class="' + (protOk ? "ok" : "over") + '">' + (protOk ? "达标" : "不足") + "</span>" : "") +
+          '</span>';
+      }
+      if (plan.protein_per_yuan != null) {
+        nutriHtml += '<span>每元 <b>' + plan.protein_per_yuan + '</b>g</span>';
+      }
+      nutriHtml += '</div>';
+    }
+    var itemsHtml = '<ul class="items">' + plan.items.map(function (it) {
+      var cp = it.coupon_title ? ' <span class="cp">用券：' + esc(it.coupon_title) + '</span>' : "";
+      var off = (it.official_nutri && LIVE.connected) ? ' <span class="off">官方营养</span>' : "";
+      return '<li><span>' + esc(it.name) + ' <span class="q">×' + it.quantity + '</span>' + cp + off + '</span>' +
+        '<span class="p">¥' + it.unit_price_yuan.toFixed(1) + '</span></li>';
+    }).join("") + '</ul>';
+    return '<div class="plan' + (top ? " top" : "") + '">' +
+      '<span class="tag">' + label + '</span>' +
+      '<h3>' + (top ? "推荐首选" : label) + '</h3>' +
+      '<div class="sub">' + plan.item_count + ' 件餐品</div>' +
+      '<div class="price-row"><span class="pay">¥' + plan.pay_total_yuan.toFixed(2) + '</span>' +
+      '<span class="orig">原价 ¥' + plan.orig_total_yuan.toFixed(2) + '</span></div>' +
+      '<div class="save">省 ¥' + plan.save_yuan.toFixed(2) + '</div>' +
+      itemsHtml + nutriHtml + '</div>';
+  }
+
+  function barRow(plans, title, key, limit, unit, limitLabel) {
+    var order = ["cheapest", "best_value", "richest"];
+    var vals = {}, maxV = 1;
+    order.forEach(function (k) {
+      var v = plans[k][key];
+      vals[k] = v;
+      if (v != null && v > maxV) maxV = v;
+    });
+    if (limit != null && limit > maxV) maxV = limit;
+    var html = '<div class="bar-row">' +
+      '<div class="bar-lbl"><span>' + title + '</span><span class="limit">' + limitLabel + '</span></div>' +
+      '<div class="bar-track">';
+    var clsMap = { cheapest: "s-cheapest", best_value: "s-best", richest: "s-richest" };
+    var nameMap = { cheapest: "最便宜", best_value: "最划算", richest: "最丰盛" };
+    order.forEach(function (k) {
+      var v = vals[k];
+      if (v == null) return;
+      var pct = Math.max(8, Math.min(100, v / maxV * 100));
+      html += '<div class="bar-seg ' + clsMap[k] + '" style="width:' + pct + '%" title="' + nameMap[k] + ' ' + v + unit + '">' + v + '</div>';
+    });
+    html += '</div></div>';
+    return html;
+  }
+
+  function barsHtml(result) {
+    var kcalMax = result.nutrition_constraint.max_kcal;
+    var protMin = result.nutrition_constraint.min_protein;
+    var kcalLabel = kcalMax != null ? "上限 " + kcalMax + " kcal" : "无上限";
+    var protLabel = protMin != null ? "下限 " + protMin + " g" : "无下限";
+    var plans = { cheapest: result.cheapest, best_value: result.best_value, richest: result.richest };
+    return '<h2 style="font-size:16px;font-weight:800;margin-bottom:14px;color:var(--red)">营养对比</h2>' +
+      barRow(plans, "总热量 (kcal)", "kcal_total", kcalMax, " kcal", kcalLabel) +
+      barRow(plans, "总蛋白 (g)", "protein_total", protMin, " g", protLabel) +
+      '<div class="bar-legend">' +
+      '<span><i style="background:#C8102E"></i>最便宜</span>' +
+      '<span><i style="background:#E2572C"></i>最划算</span>' +
+      '<span><i style="background:#F2A93B"></i>最丰盛</span>' +
+      '</div>';
+  }
+
+  function trapsHtml(result) {
+    var html = '<div class="traps" style="margin:0;box-shadow:none;">';
+    if (!result.traps.length) {
+      html += '<div class="no-trap">当前方案未发现明显凑单陷阱。</div>';
+    } else {
+      result.traps.forEach(function (t) {
+        html += '<div class="trap ' + t.severity + '"><div class="ic">' + (t.severity === "high" ? "!" : t.severity === "medium" ? "i" : "OK") + '</div>' +
+          '<div class="body"><b>' + esc(t.title) + '</b><div class="detail">' + esc(t.detail) + '</div></div></div>';
+      });
+    }
+    html += '</div>';
+    return html;
+  }
+
+  function render(result) {
+    lastResult = result;
+    if (result.error) {
+      resultEl.innerHTML = '<div class="empty"><div class="big">!</div><div>' + esc(result.error) + '</div></div>';
+      barsHolder.innerHTML = trapsHolder.innerHTML = "";
+      return;
+    }
+    var relaxed = result.nutrition_constraint.relaxed;
+    var relNote = relaxed ? '<div class="trap low" style="margin-bottom:14px;border-radius:12px;display:flex;gap:10px;padding:11px 13px;background:var(--green-soft);font-size:13px"><div class="ic">i</div><div class="body"><b>营养约束已放宽</b><div class="detail">当前预算下没有同时满足热量/蛋白目标的组合，以下为最接近方案。</div></div></div>' : "";
+
+    var summary =
+      '<div class="summary">' +
+      '<div class="stat' + (relaxed ? " warn" : " ok") + '"><div class="num">' + result.feasible_count + '<small> 组</small></div><div class="lbl">可行组合（预算内）</div></div>' +
+      '<div class="stat' + (result.nutrition_filtered > 0 ? " ok" : " warn") + '"><div class="num">' + result.nutrition_filtered + '<small> 组</small></div><div class="lbl">满足营养约束</div></div>' +
+      '<div class="stat' + (result.traps.length ? " warn" : " ok") + '"><div class="num">' + result.traps.length + '<small> 条</small></div><div class="lbl">凑单陷阱提示</div></div>' +
+      '</div>';
+
+    var plans =
+      '<div class="plans">' +
+      planCard("cheapest", result.cheapest, { label: "最便宜", top: false, maxKcal: result.nutrition_constraint.max_kcal, minProtein: result.nutrition_constraint.min_protein }) +
+      planCard("best_value", result.best_value, { label: "最划算", top: true, maxKcal: result.nutrition_constraint.max_kcal, minProtein: result.nutrition_constraint.min_protein }) +
+      planCard("richest", result.richest, { label: "最丰盛", top: false, maxKcal: result.nutrition_constraint.max_kcal, minProtein: result.nutrition_constraint.min_protein }) +
+      '</div>';
+
+    resultEl.innerHTML = summary + plans + relNote;
+    barsHolder.innerHTML = barsHtml(result);
+    trapsHolder.innerHTML = trapsHtml(result);
+  }
+
+  /* ============ 运行 ============ */
+  function run() {
+    var budget = parseFloat(document.getElementById("budget").value);
+    var kcalRaw = document.getElementById("kcal").value;
+    var protRaw = document.getElementById("protein").value;
+    var kcal = kcalRaw === "" ? null : parseFloat(kcalRaw);
+    var prot = protRaw === "" ? null : parseFloat(protRaw);
+    if (isNaN(budget) || budget < 0) {
+      resultEl.innerHTML = '<div class="empty"><div class="big">!</div><div>预算格式不对，请输入数字（如 40）。</div></div>';
+      return;
+    }
+    var meals = applyLiveNutrition(LIVE.meals || MEALS);
+    var coupons = LIVE.meals ? [] : COUPONS; // 实时菜单无券映射时不用样本券
+    render(recommend(meals, coupons, budget, kcal, prot));
+    switchView("home");
+    scrollToPanel();
+  }
+
+  function fillDemo() {
+    document.getElementById("budget").value = "40";
+    document.getElementById("kcal").value = "700";
+    document.getElementById("protein").value = "25";
+    run();
+  }
+
+  /* ============ 实时连接 ============ */
+  function setLiveUI(connected, msg) {
+    var dot = document.getElementById("liveDot");
+    var status = document.getElementById("liveStatus");
+    var badge = document.getElementById("srcBadge");
+    var pill = document.getElementById("dataPill");
+    var btn = document.getElementById("connectBtn");
+    if (connected) {
+      dot.classList.add("on");
+      status.textContent = "已连接";
+      badge.textContent = "数据源：官方实时";
+      badge.className = "src live";
+      pill.textContent = "官方实时 · 营养/券已更新";
+      btn.textContent = "刷新实时数据";
+    } else {
+      dot.classList.remove("on");
+      status.textContent = msg || "未连接";
+      badge.textContent = "数据源：离线示例";
+      badge.className = "src offline";
+      pill.textContent = "离线示例 · 无需 Token";
+      btn.textContent = "连接实时数据";
+    }
+  }
+
+  async function apiMcp(name, args) {
+    var resp = await fetch("/api/mcp", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: name, arguments: args || {} })
+    });
+    return await resp.json();
+  }
+
+  async function connectLive() {
+    var btn = document.getElementById("connectBtn");
+    btn.disabled = true;
+    btn.textContent = "连接中…";
+    try {
+      var r1 = await apiMcp("available-coupons", {});
+      var r2 = await apiMcp("list-nutrition-foods", {});
+      if (!r1.ok || !r2.ok) {
+        var err = (!r1.ok ? r1.error : r2.error) || "实时接口返回错误";
+        setLiveUI(false, "连接失败");
+        document.getElementById("menuResult").textContent = "⚠ 实时连接失败：" + err + "（请确认已通过 mcp-proxy.js 启动本页，而非直接打开文件）";
+        return;
+      }
+      // 解析券
+      var couponData = (r1.structured && r1.structured.data) || [];
+      LIVE.coupons = Array.isArray(couponData) ? couponData : [];
+      // 解析营养：优先用 structured.data（官方营养表，带真实换行），回退 content 文本
+      var nutriText = (r2.structured && r2.structured.data) || r2.text || "";
+      if (typeof nutriText !== "string") nutriText = JSON.stringify(nutriText);
+      LIVE.nutrition = parseNutrition(nutriText);
+      LIVE.connected = true;
+      setLiveUI(true);
+      renderLiveCoupons();
+      var applied = applyLiveNutrition(LIVE.meals || MEALS);
+      var matched = Object.keys(applied).filter(function (c) { return applied[c]._official; }).length;
+      document.getElementById("nutriStat").innerHTML =
+        "✅ 已拉取官方营养条目 <b>" + Object.keys(LIVE.nutrition).length + "</b> 项；当前菜单命中官方营养 <b>" + matched + "</b> 项（其余沿用示例）。";
+      // 若已填参数则重算
+      if (document.getElementById("budget").value) run();
+    } catch (e) {
+      setLiveUI(false, "未连接");
+      // 修复：连接失败时除 live 面板提示外，另弹醒目横幅，避免“点击无反应”的误判
+      showProxyWarn("warn", "⚠ 无法连接本地代理：" + (e && e.message ? e.message : e) +
+        "。请先运行 <b>node mcp-proxy.js</b>，再用 <b>http://localhost:8787/</b> 打开本页。离线示例功能不受影响。");
+      document.getElementById("menuResult").textContent = "⚠ 无法连接本地代理：" + (e && e.message ? e.message : e) + "。请先运行 node mcp-proxy.js，再通过 http://localhost:端口 打开本页。";
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  function renderLiveCoupons() {
+    var wrap = document.getElementById("liveCouponsWrap");
+    var box = document.getElementById("liveCoupons");
+    if (!LIVE.coupons.length) { wrap.style.display = "none"; return; }
+    wrap.style.display = "block";
+    box.innerHTML = LIVE.coupons.map(function (c) {
+      var name = c.couponName || c.title || "优惠券";
+      var st = c.label || (c.couponStatus === "CAN_GET" ? "可领取" : "");
+      return '<span class="cc">' + esc(name) + (st ? '<span class="st">' + esc(st) + '</span>' : '') + '</span>';
+    }).join("");
+  }
+
+  async function loadMenu() {
+    var city = document.getElementById("cityInput").value.trim();
+    var kw = document.getElementById("kwInput").value.trim();
+    var res = document.getElementById("menuResult");
+    var sel = document.getElementById("storeSelect");
+    var useBtn = document.getElementById("useStoreBtn");
+    res.textContent = "查询门店中…";
+    try {
+      var sr = await apiMcp("query-nearby-stores", { searchType: 2, beType: 1, city: city, keyword: kw });
+      if (!sr.ok || (sr.structured && sr.structured.success === false)) {
+        res.innerHTML = "⚠ 该城市/关键词未查到门店（" + ((sr.structured && sr.structured.message) || sr.error || "无结果") + "）。已沿用离线示例菜单。";
+        sel.disabled = true; useBtn.disabled = true;
+        return;
+      }
+      var stores = (sr.structured && sr.structured.data) || [];
+      if (!Array.isArray(stores) || !stores.length) {
+        res.innerHTML = "⚠ 未返回门店列表，已沿用离线示例菜单。";
+        sel.disabled = true; useBtn.disabled = true;
+        return;
+      }
+      res.innerHTML = "✅ 找到 <b>" + stores.length + "</b> 家门店，选择一个后点「用该门店算价」。";
+      sel.disabled = false; useBtn.disabled = false;
+      sel.innerHTML = stores.map(function (s, i) {
+        return '<option value="' + i + '">' + esc(s.storeName || ("门店" + i)) + " · " + esc(s.address || "") + "</option>";
+      }).join("");
+      sel._stores = stores;
+    } catch (e) {
+      res.textContent = "⚠ 门店查询失败：" + (e && e.message ? e.message : e) + "，已沿用离线示例菜单。";
+    }
+  }
+
+  async function useStore() {
+    var sel = document.getElementById("storeSelect");
+    var res = document.getElementById("menuResult");
+    var stores = sel._stores;
+    if (!stores) return;
+    var s = stores[sel.value];
+    if (!s) return;
+    res.textContent = "加载该门店菜单与实时算价中…";
+    try {
+      var args = { storeCode: s.storeCode, beCode: s.beCode || s.storeCode, orderType: 1, beType: 1 };
+      var mr = await apiMcp("query-meals", args);
+      var mealsData = (mr.structured && mr.structured.data) || [];
+      var liveMeals = buildLiveMeals(mealsData);
+      if (!liveMeals) {
+        res.innerHTML = "⚠ 该门店菜单解析为空，已沿用离线示例菜单。";
+        LIVE.meals = null;
+        return;
+      }
+      LIVE.meals = liveMeals;
+      LIVE.storeName = s.storeName;
+      document.getElementById("storeName").innerHTML = esc(s.storeName) + '<small>' + esc(s.address || "实时门店") + '</small>';
+      var official = Object.keys(liveMeals).filter(function (c) { return liveMeals[c].kcal != null; }).length;
+      res.innerHTML = "✅ 已载入实时菜单 <b>" + Object.keys(liveMeals).length + "</b> 项（其中 <b>" + official + "</b> 项匹配到官方营养），点「计算最优方案」即用真实价格比价。";
+      if (document.getElementById("budget").value) run();
+    } catch (e) {
+      res.textContent = "⚠ 菜单加载失败：" + (e && e.message ? e.message : e) + "，已沿用离线示例菜单。";
+      LIVE.meals = null;
+    }
+  }
+
+  /* ============ 视图切换 ============ */
+  var topTabs = document.querySelectorAll("#topTabs button");
+  var tabBtns = document.querySelectorAll("#tabbar button");
+  var views = ["home", "nutrition", "traps", "mine"];
+
+  function switchView(name) {
+    if (views.indexOf(name) === -1) return;
+    document.querySelectorAll(".view").forEach(function (v) { v.classList.remove("on"); });
+    document.getElementById("view-" + name).classList.add("on");
+    topTabs.forEach(function (b) { b.classList.toggle("on", b.dataset.view === name); });
+    tabBtns.forEach(function (b) { b.classList.toggle("on", b.dataset.tab === name); });
+    if (name !== "home") {
+      // 修复：若已有计算结果，切到该页时始终用最新结果刷新；否则仅在容器为空时给占位提示
+      var holder = name === "nutrition" ? barsHolder : name === "traps" ? trapsHolder : null;
+      if (holder) {
+        if (lastResult && !lastResult.error) {
+          holder.innerHTML = name === "nutrition" ? barsHtml(lastResult) : trapsHtml(lastResult);
+        } else if (!holder.innerHTML) {
+          holder.innerHTML = '<div class="empty">先在上方输入参数并计算。</div>';
+        }
+      }
+    }
+    window.scrollTo(0, 0);
+  }
+
+  function scrollToPanel() {
+    var p = document.querySelector(".panel");
+    if (p) p.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  topTabs.forEach(function (b) {
+    b.addEventListener("click", function () { switchView(b.dataset.view); });
+  });
+  tabBtns.forEach(function (b) {
+    b.addEventListener("click", function () {
+      var t = b.dataset.tab;
+      if (t === "nutrition") switchView("nutrition");
+      else if (t === "traps") switchView("traps");
+      else if (t === "mine") switchView("mine");
+      else switchView("home");
+    });
+  });
+
+  document.getElementById("goCalc").addEventListener("click", function () {
+    switchView("home"); scrollToPanel(); document.getElementById("budget").focus();
+  });
+  document.getElementById("goDemo").addEventListener("click", fillDemo);
+  document.querySelectorAll(".grid .cell").forEach(function (c) {
+    c.addEventListener("click", function () {
+      var nav = c.dataset.nav;
+      if (nav === "goTrap") switchView("traps");
+      else { switchView("home"); scrollToPanel(); }
+    });
+  });
+  document.getElementById("pointsBtn").addEventListener("click", function () { switchView("mine"); });
+  document.getElementById("walletPay").addEventListener("click", function () {
+    alert("演示：接入麦当劳 MCP 后跳转支付。");
+  });
+  document.getElementById("storeBtn").addEventListener("click", function () {
+    alert("演示：接入 MCP 后调用 query-nearby-stores 切换真实门店。");
+  });
+  document.getElementById("connectBtn").addEventListener("click", connectLive);
+  document.getElementById("menuBtn").addEventListener("click", loadMenu);
+  document.getElementById("useStoreBtn").addEventListener("click", useStore);
+
+  document.getElementById("runBtn").addEventListener("click", run);
+  document.getElementById("demoBtn").addEventListener("click", fillDemo);
+  renderEmpty();
+  // 修复：加载即探测代理，给出明确的实时/离线状态，避免“连接无反应”的误判
+  checkProxy();
+})();
+</script>
+</body>
+</html>

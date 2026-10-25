@@ -1,0 +1,1609 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>麦门冒险 · 麦当劳 MCP 省钱闯关</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23C8102E'/%3E%3Ctext x='32' y='43' font-size='32' text-anchor='middle' fill='%23FFC72C' font-family='sans-serif' font-weight='bold'%3EM%3C/text%3E%3C/svg%3E">
+<style>
+  /* ========== 统一像素游戏风主题 ========== */
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  :root {
+    --red: #C8102E; --red-deep: #9E0B22;
+    --gold: #FFC72C; --gold-deep: #F2A93B;
+    --ink: #1C1714; --muted: #8A7A66; --line: #EADfce;
+    --bg: #FBF3E4; --panel: #FFFFFF;
+    --green: #2E7D32; --green-soft: #E8F5E9;
+    --orange: #C9640F; --orange-soft: #FFF3E0;
+    --blue: #1565C0; --blue-soft: #E8F1FA;
+    --shadow: 4px 4px 0 rgba(28,23,20,.18);
+    --shadow-sm: 3px 3px 0 rgba(28,23,20,.14);
+    --r: 14px;
+  }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    font-family: "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", "Segoe UI", sans-serif;
+    background:
+      radial-gradient(circle at 20% 0%, rgba(255,199,44,.10), transparent 40%),
+      radial-gradient(circle at 90% 10%, rgba(200,16,46,.08), transparent 45%),
+      var(--bg);
+    color: var(--ink); line-height: 1.55;
+    background-attachment: fixed;
+  }
+  .page { max-width: 1080px; margin: 0 auto; padding: 0 16px 86px; }
+
+  /* 像素描边通用 */
+  .px { border: 2.5px solid var(--ink); border-radius: var(--r); box-shadow: var(--shadow); }
+
+  /* ========== 顶部 HUD ========== */
+  .hud {
+    position: sticky; top: 0; z-index: 40;
+    display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;
+    background: var(--red); color: #fff; padding: 10px 16px;
+    border-bottom: 3px solid var(--red-deep);
+  }
+  .hud .title { display: flex; align-items: center; gap: 10px; font-weight: 900; font-size: 18px; letter-spacing: .5px; }
+  .hud .title .badge {
+    width: 34px; height: 34px; border-radius: 9px; background: var(--gold); color: var(--red);
+    display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 20px;
+    border: 2px solid var(--ink);
+  }
+  .hud .right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .hud .live { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; background: rgba(0,0,0,.18); padding: 5px 10px; border-radius: 999px; }
+  .hud .live .dot { width: 8px; height: 8px; border-radius: 50%; background: #bbb; transition: background .2s, box-shadow .2s; }
+  .hud .live .dot.on { background: #3DDC84; box-shadow: 0 0 8px #3DDC84; }
+  .btn-connect {
+    border: 2px solid var(--ink); background: var(--gold); color: #5A2D00; border-radius: 999px;
+    padding: 6px 16px; font-size: 13px; font-weight: 800; cursor: pointer; font-family: inherit; min-height: 34px;
+    box-shadow: var(--shadow-sm);
+  }
+  .btn-connect:active { transform: translate(2px,2px); box-shadow: 1px 1px 0 rgba(0,0,0,.14); }
+  .btn-connect:disabled { opacity: .7; cursor: default; }
+  .score {
+    background: var(--ink); color: var(--gold); border-radius: 999px; padding: 6px 14px;
+    font-size: 13px; font-weight: 800; cursor: pointer; border: 2px solid var(--gold); font-family: inherit; min-height: 34px;
+  }
+
+  /* ========== 代理/错误横幅 ========== */
+  .proxywarn { display: none; margin: 14px 0 0; padding: 12px 16px; border-radius: 12px; font-size: 13px; line-height: 1.6; font-weight: 600; }
+  .proxywarn.warn { display: block; background: #FFF3E0; border: 2px solid var(--orange); color: #7A3B05; }
+  .proxywarn.err { display: block; background: #FDEAEC; border: 2px solid var(--red); color: var(--red-deep); }
+  .proxywarn.ok { display: block; background: var(--green-soft); border: 2px solid #A5D6A7; color: var(--green); }
+  .proxywarn b { color: inherit; }
+
+  /* ========== 像素场景（角色动画舞台） ========== */
+  .scene {
+    position: relative; margin: 14px 0 0; height: 260px; overflow: hidden;
+    border: 2.5px solid var(--ink); border-radius: var(--r); box-shadow: var(--shadow);
+    background: linear-gradient(180deg, #8FD3FF 0%, #BFE9FF 55%, #E9F7E1 55%, #CDEBC0 100%);
+    image-rendering: pixelated;
+  }
+  /* 远景建筑（麦当劳餐厅） */
+  .bld { position: absolute; bottom: 60px; left: 50%; transform: translateX(-50%); width: 230px; height: 150px; }
+  .bld .roof { position: absolute; top: 0; left: -10px; right: -10px; height: 26px; background: var(--red); border: 2.5px solid var(--ink); border-radius: 6px 6px 0 0; }
+  .bld .roof::after { content: "M"; position: absolute; top: 2px; left: 50%; transform: translateX(-50%); color: var(--gold); font-weight: 900; font-size: 18px; }
+  .bld .wall { position: absolute; top: 26px; left: 0; right: 0; bottom: 0; background: #FFF3E1; border: 2.5px solid var(--ink); border-top: none; }
+  .bld .door { position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 46px; height: 64px; background: #6B4F2A; border: 2.5px solid var(--ink); border-bottom: none; border-radius: 6px 6px 0 0; }
+  .bld .win { position: absolute; top: 44px; width: 34px; height: 34px; background: #BFE9FF; border: 2.5px solid var(--ink); }
+  .bld .win.l { left: 18px; } .bld .win.r { right: 18px; }
+  .sign { position: absolute; bottom: 210px; left: 50%; transform: translateX(-50%); background: var(--gold); color: var(--red); border: 2.5px solid var(--ink); border-radius: 8px; padding: 4px 12px; font-weight: 900; font-size: 14px; box-shadow: var(--shadow-sm); white-space: nowrap; }
+
+  /* 太阳 */
+  .sun { position: absolute; top: 18px; right: 26px; width: 42px; height: 42px; background: var(--gold); border: 2.5px solid var(--ink); border-radius: 50%; box-shadow: 0 0 0 6px rgba(255,199,44,.25); animation: spin 18s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* 地面 */
+  .ground { position: absolute; left: 0; right: 0; bottom: 0; height: 60px; background:
+      repeating-linear-gradient(90deg, #CDEBC0 0 28px, #BFE3AE 28px 56px);
+      border-top: 3px solid #8FB97A; }
+  /* 站点招牌（可点击，引导切换视图） */
+  .station {
+    position: absolute; bottom: 62px; transform: translateX(-50%);
+    background: var(--panel); border: 2.5px solid var(--ink); border-radius: 10px; padding: 6px 10px;
+    font-size: 12px; font-weight: 800; color: var(--ink); cursor: pointer; box-shadow: var(--shadow-sm);
+    text-align: center; line-height: 1.2; min-width: 64px;
+  }
+  .station .ic { font-size: 18px; display: block; }
+  .station:hover { background: #FFF7E6; }
+  .station:active { transform: translateX(-50%) translateY(2px); }
+
+  /* 角色：纯 SVG 像素小人，零依赖 */
+  #hero {
+    position: absolute; bottom: 58px; left: 30px; width: 54px; height: 78px; z-index: 5;
+    transform-origin: bottom center;
+    transition: left .9s cubic-bezier(.4,1.3,.5,1);
+    will-change: left;
+    filter: drop-shadow(2px 2px 0 rgba(0,0,0,.18));
+  }
+  #hero .leg { transform-box: fill-box; transform-origin: top center; }
+  /* 待机：呼吸 + 轻微上下浮动（始终运行，GPU 友好） */
+  #hero.idle { animation: bob 1.8s ease-in-out infinite; }
+  @keyframes bob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+  /* 行走：腿摆动 + 身体微抖（仅在 .walking 时启用） */
+  #hero.walking .leg-l { animation: legL .35s ease-in-out infinite; }
+  #hero.walking .leg-r { animation: legR .35s ease-in-out infinite; }
+  #hero.walking { animation: walkbob .35s ease-in-out infinite; }
+  @keyframes legL { 0%,100% { transform: rotate(20deg); } 50% { transform: rotate(-20deg); } }
+  @keyframes legR { 0%,100% { transform: rotate(-20deg); } 50% { transform: rotate(20deg); } }
+  @keyframes walkbob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+  /* 交互反馈：蹦跳一下 */
+  #hero.hop { animation: hop .4s ease; }
+  @keyframes hop { 0% { transform: translateY(0) scale(1,1);} 30% { transform: translateY(-22px) scale(.9,1.1);} 100% { transform: translateY(0) scale(1,1);} }
+  #hero.flip { transform: scaleX(-1); }
+  /* 角色脚下影子 */
+  .hero-shadow { position: absolute; bottom: 54px; left: 30px; width: 46px; height: 12px; background: rgba(0,0,0,.18); border-radius: 50%; z-index: 4; transition: left .9s cubic-bezier(.4,1.3,.5,1), width .2s; }
+
+  .scene-hint { position: absolute; left: 10px; top: 8px; font-size: 11px; font-weight: 700; color: #2b5b7a; background: rgba(255,255,255,.7); border-radius: 6px; padding: 3px 8px; }
+
+  /* ========== 场景转场幕布 ========== */
+  #curtain {
+    position: fixed; inset: 0; z-index: 90; background: var(--red-deep);
+    display: flex; align-items: center; justify-content: center; color: var(--gold);
+    font-size: 22px; font-weight: 900; letter-spacing: 2px;
+    opacity: 0; pointer-events: none; transition: opacity .26s ease;
+  }
+  #curtain.show { opacity: 1; pointer-events: all; }
+  #curtain .m { animation: pulse 1s ease-in-out infinite; }
+  @keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.08); } }
+
+  /* ========== 视图 ========== */
+  .view { display: none; margin-top: 14px; }
+  .view.on { display: block; animation: viewIn .3s ease; }
+  @keyframes viewIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+  /* 促销卡 */
+  .promos { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin-bottom: 14px; }
+  .promo { border-radius: var(--r); padding: 16px; min-height: 132px; position: relative; overflow: hidden; display: flex; flex-direction: column; justify-content: space-between; border: 2.5px solid var(--ink); box-shadow: var(--shadow); }
+  .promo .ptag { font-size: 11px; font-weight: 800; letter-spacing: 1px; padding: 3px 9px; border-radius: 999px; align-self: flex-start; }
+  .promo .ptitle { font-size: 19px; font-weight: 900; line-height: 1.3; margin-top: 8px; }
+  .promo .psub { font-size: 12px; opacity: .9; margin-top: 5px; }
+  .promo .go { align-self: flex-start; border: 2px solid var(--ink); border-radius: 999px; padding: 8px 18px; font-size: 13px; font-weight: 800; cursor: pointer; font-family: inherit; min-height: 38px; box-shadow: var(--shadow-sm); }
+  .promo .go:active { transform: translate(2px,2px); box-shadow: 1px 1px 0 rgba(0,0,0,.14); }
+  .promo.pix { background: #14140F; color: var(--gold); }
+  .promo.pix::before { content: ""; position: absolute; inset: 0; background-image: repeating-linear-gradient(0deg, rgba(255,199,44,.07) 0 1px, transparent 1px 5px), repeating-linear-gradient(90deg, rgba(255,199,44,.05) 0 1px, transparent 1px 7px); pointer-events: none; }
+  .promo.pix .ptag { background: var(--gold); color: #14140F; }
+  .promo.pix .go { background: var(--gold); color: #14140F; }
+  .promo.sea { background: linear-gradient(160deg, #0E6FA8 0%, #0A4D75 100%); color: #fff; }
+  .promo.sea .ptag { background: rgba(255,255,255,.22); color: #fff; }
+  .promo.sea .go { background: var(--gold); color: #5A2D00; }
+  .promo .price { font-size: 22px; font-weight: 900; margin-top: 6px; }
+  .promo .price small { font-size: 12px; font-weight: 600; opacity: .85; }
+
+  /* 实时数据面板 */
+  .card { background: var(--panel); border: 2.5px solid var(--ink); border-radius: var(--r); margin-bottom: 14px; padding: 16px 18px; box-shadow: var(--shadow); }
+  .card .ch { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .card .ch b { font-size: 14px; color: var(--red); }
+  .steps { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+  .step { background: var(--bg); border: 1.5px solid var(--line); border-radius: 999px; padding: 4px 10px; font-size: 11px; font-weight: 700; font-family: Consolas, monospace; }
+  .arrow { color: var(--muted); font-weight: 900; }
+  .src { font-size: 11px; font-weight: 700; padding: 4px 11px; border-radius: 999px; }
+  .src.offline { background: #EFEFEF; color: #777; } .src.live { background: var(--green-soft); color: var(--green); }
+
+  .couponchips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+  .cc { background: #FFF4D6; border: 1.5px solid #F2D89B; color: #7A4A00; border-radius: 999px; padding: 6px 13px; font-size: 12px; font-weight: 700; }
+  .nutristat { font-size: 12px; color: var(--muted); margin-top: 8px; } .nutristat b { color: var(--green); }
+  .menuform { display: grid; grid-template-columns: 1.2fr 1.2fr auto; gap: 10px; align-items: end; margin-top: 12px; }
+  .menuform label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+  .menuform input, .menuform select { width: 100%; min-width: 0; padding: 9px 11px; border: 2px solid var(--line); border-radius: 10px; font-size: 14px; font-family: inherit; background: #FFFDF8; }
+  .mbtn { border: 2px solid var(--ink); background: var(--blue); color: #fff; border-radius: 10px; padding: 0 16px; min-height: 40px; font-size: 13px; font-weight: 800; cursor: pointer; font-family: inherit; box-shadow: var(--shadow-sm); }
+  .mbtn.ghost { background: var(--panel); color: var(--blue); }
+  .mbtn:active { transform: translate(2px,2px); box-shadow: 1px 1px 0 rgba(0,0,0,.14); }
+  .menuresult { font-size: 12px; color: var(--muted); margin-top: 8px; } .menuresult b { color: var(--blue); }
+
+  /* 功能网格已移除 */
+
+  /* 门店栏 */
+  .store { display: flex; justify-content: space-between; align-items: center; background: var(--panel); border: 2.5px solid var(--ink); border-radius: 12px; margin-bottom: 14px; padding: 12px 16px; box-shadow: var(--shadow-sm); }
+  .store .nm { font-size: 15px; font-weight: 800; }
+  .store .nm small { display: block; font-size: 12px; font-weight: 400; color: var(--muted); margin-top: 2px; }
+  .store .sw { font-size: 13px; color: var(--red); font-weight: 700; cursor: pointer; border: 2px solid var(--red); background: var(--panel); border-radius: 999px; padding: 4px 12px; min-height: 38px; font-family: inherit; }
+
+  /* 参数卡 */
+  .panel { background: var(--panel); border: 2.5px solid var(--ink); border-radius: var(--r); margin-bottom: 14px; padding: 18px; box-shadow: var(--shadow); }
+  .panel .ph { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; gap: 10px; flex-wrap: wrap; }
+  .panel .ph h2 { font-size: 17px; font-weight: 900; color: var(--red); }
+  .panel .ph .pill { font-size: 11px; font-weight: 700; color: #7A4A00; background: #FFF4D6; border-radius: 999px; padding: 4px 11px; border: 1.5px solid #F2D89B; }
+  .inputs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .field label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: var(--muted); }
+  .field label .hint { font-weight: 400; color: #B5A896; font-size: 11px; }
+  .field input { width: 100%; min-width: 0; padding: 11px 12px; border: 2px solid var(--line); border-radius: 12px; font-size: 16px; color: var(--ink); background: #FFFDF8; font-family: inherit; }
+  .field input:focus { outline: none; border-color: var(--red); background: #fff; }
+  .actions { display: flex; gap: 12px; margin-top: 16px; }
+  .btn { min-height: 48px; padding: 0 22px; border: 2.5px solid var(--ink); border-radius: 999px; font-size: 15px; font-weight: 800; cursor: pointer; font-family: inherit; box-shadow: var(--shadow-sm); transition: transform .08s ease; }
+  .btn:active { transform: translate(2px,2px); box-shadow: 1px 1px 0 rgba(0,0,0,.14); }
+  .btn-gold { background: var(--gold); color: #5A2D00; flex: 1; }
+  .btn-line { background: var(--panel); color: var(--red); }
+
+  /* 结果区 */
+  .summary { display: flex; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+  .stat { flex: 1; min-width: 120px; background: var(--panel); border: 2.5px solid var(--ink); border-radius: 12px; padding: 12px 14px; box-shadow: var(--shadow-sm); }
+  .stat .num { font-size: 22px; font-weight: 900; color: var(--red); }
+  .stat .num small { font-size: 12px; font-weight: 600; color: var(--muted); }
+  .stat .lbl { font-size: 12px; color: var(--muted); margin-top: 3px; }
+  .stat.ok .num { color: var(--green); } .stat.warn .num { color: var(--orange); }
+
+  .plans { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 14px; }
+  .plan { background: var(--panel); border: 2.5px solid var(--line); border-radius: var(--r); padding: 16px; display: flex; flex-direction: column; box-shadow: var(--shadow-sm); }
+  .plan.top { border-color: var(--red); box-shadow: var(--shadow); }
+  .plan .tag { align-self: flex-start; font-size: 12px; font-weight: 800; padding: 3px 10px; border-radius: 999px; background: #FFF4D6; color: #7A4A00; margin-bottom: 8px; border: 1.5px solid #F2D89B; }
+  .plan.top .tag { background: var(--red); color: #fff; border-color: var(--ink); }
+  .plan h3 { font-size: 17px; font-weight: 900; margin-bottom: 2px; }
+  .plan .sub { font-size: 12px; color: var(--muted); margin-bottom: 12px; }
+  .price-row { display: flex; align-items: baseline; gap: 8px; margin-bottom: 3px; flex-wrap: wrap; }
+  .plan .pay { font-size: 24px; font-weight: 900; color: var(--red); }
+  .plan .pay small { font-size: 13px; font-weight: 600; color: var(--muted); }
+  .plan .orig { font-size: 12px; color: var(--muted); text-decoration: line-through; }
+  .plan .save { font-size: 12px; font-weight: 800; color: var(--green); margin-bottom: 10px; }
+  .plan ul.items { list-style: none; font-size: 13px; margin-bottom: 10px; flex: 1; }
+  .plan ul.items li { padding: 5px 0; border-bottom: 1px dashed var(--line); display: flex; justify-content: space-between; gap: 8px; }
+  .plan ul.items li:last-child { border-bottom: none; }
+  .plan ul.items .q { color: var(--muted); font-size: 12px; }
+  .plan ul.items .p { white-space: nowrap; }
+  .plan ul.items .cp { color: var(--green); font-weight: 600; font-size: 12px; display: block; }
+  .plan ul.items .off { color: var(--blue); font-weight: 600; font-size: 11px; display: block; }
+  .nutri { display: flex; gap: 10px; flex-wrap: wrap; background: var(--bg); border-radius: 10px; padding: 9px 11px; font-size: 12px; }
+  .nutri span { display: flex; align-items: center; gap: 3px; }
+  .nutri .ok { color: var(--green); font-weight: 800; } .nutri .over { color: var(--orange); font-weight: 800; } .nutri b { color: var(--ink); font-weight: 700; }
+
+  .bars { background: var(--panel); border: 2.5px solid var(--ink); border-radius: var(--r); margin-bottom: 14px; padding: 18px; box-shadow: var(--shadow); }
+  .bars h2 { font-size: 16px; font-weight: 900; margin-bottom: 14px; color: var(--red); }
+  .bar-row { margin-bottom: 14px; }
+  .bar-lbl { display: flex; justify-content: space-between; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+  .bar-lbl .limit { color: var(--muted); font-weight: 400; font-size: 12px; }
+  .bar-track { height: 22px; background: var(--bg); border: 2px solid var(--line); border-radius: 6px; overflow: hidden; display: flex; }
+  .bar-seg { height: 100%; display: flex; align-items: center; justify-content: flex-end; padding-right: 6px; font-size: 11px; font-weight: 700; color: #fff; min-width: 38px; }
+  .bar-seg.s-cheapest { background: #C8102E; } .bar-seg.s-best { background: #E2572C; } .bar-seg.s-richest { background: #F2A93B; }
+  .bar-limit { height: 22px; border-left: 2px dashed var(--ink); margin-top: -22px; }
+  .bar-legend { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 8px; font-size: 12px; color: var(--muted); }
+  .bar-legend i { display: inline-block; width: 11px; height: 11px; border-radius: 3px; margin-right: 4px; vertical-align: -1px; }
+
+  .traps { background: var(--panel); border: 2.5px solid var(--ink); border-radius: var(--r); margin-bottom: 14px; padding: 18px; box-shadow: var(--shadow); }
+  .traps h2 { font-size: 16px; font-weight: 900; margin-bottom: 12px; color: var(--red); }
+  .trap { display: flex; gap: 10px; padding: 11px 13px; border-radius: 12px; margin-bottom: 8px; font-size: 13px; border: 2px solid transparent; }
+  .trap:last-child { margin-bottom: 0; }
+  .trap .ic { flex: 0 0 24px; font-size: 13px; text-align: center; font-weight: 900; }
+  .trap .body b { font-size: 13px; } .trap .body .detail { color: var(--muted); font-size: 12px; margin-top: 2px; }
+  .trap.high { background: #FDEAEC; border-color: #F3B6BF; } .trap.high .ic { color: var(--red); }
+  .trap.medium { background: var(--orange-soft); border-color: #F3D3A8; } .trap.medium .ic { color: var(--orange); }
+  .trap.low { background: var(--green-soft); border-color: #B7DFB9; } .trap.low .ic { color: var(--green); }
+  .no-trap { font-size: 13px; color: var(--muted); padding: 5px 2px; }
+
+  .empty { text-align: center; padding: 34px 16px; color: var(--muted); font-size: 14px; }
+  .empty .big { font-size: 40px; margin-bottom: 8px; }
+  .empty .steps { margin-top: 10px; font-size: 12px; color: #B5A896; }
+
+  .note { margin-bottom: 14px; padding: 14px 16px; background: var(--panel); border: 2.5px solid var(--line); border-radius: 12px; font-size: 12px; color: var(--muted); line-height: 1.65; box-shadow: var(--shadow-sm); }
+  .note b { color: var(--red); }
+
+  /* 我的 */
+  .mine-card { background: var(--panel); border: 2.5px solid var(--ink); border-radius: var(--r); padding: 16px; margin-bottom: 14px; box-shadow: var(--shadow); }
+  .mine-card .row { display: flex; align-items: center; gap: 12px; }
+  .avatar { width: 46px; height: 46px; border-radius: 12px; background: var(--gold); color: var(--red); display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 24px; border: 2px solid var(--ink); }
+  .mine-card .nm { font-size: 16px; font-weight: 800; } .mine-card .mb { font-size: 12px; color: var(--muted); }
+  .mine-card .pts { margin-left: auto; font-weight: 900; color: var(--red); font-size: 18px; }
+  .coupons { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; margin: 14px 0; }
+  .cp { background: var(--bg); border: 2px dashed var(--line); border-radius: 10px; padding: 10px 4px; text-align: center; }
+  .cp b { display: block; font-size: 20px; font-weight: 900; color: var(--red); } .cp span { font-size: 11px; color: var(--muted); }
+  .wallet { display: flex; align-items: center; justify-content: space-between; background: #14140F; color: var(--gold); border-radius: 12px; padding: 12px 16px; }
+  .wallet .bal span { font-size: 12px; opacity: .8; } .wallet .bal b { font-size: 20px; }
+  .wallet .pay { border: 2px solid var(--gold); background: var(--gold); color: #14140F; border-radius: 999px; padding: 6px 18px; font-weight: 800; cursor: pointer; font-family: inherit; }
+  .list2 { list-style: none; }
+  .list2 li { display: flex; justify-content: space-between; align-items: center; padding: 12px 4px; border-bottom: 1px dashed var(--line); font-size: 14px; font-weight: 600; }
+  .list2 li:last-child { border-bottom: none; } .list2 li .go { color: var(--muted); font-weight: 900; }
+
+  /* 底部导航：固定悬停于视口底部 */
+  .tabbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 90; display: flex; background: var(--panel); border-top: 2.5px solid var(--ink); border-radius: 0; padding: 6px; box-shadow: 0 -4px 16px rgba(0,0,0,.18); }
+  .tabbar button { flex: 1; border: none; background: none; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 7px 0 8px; font-size: 12px; font-weight: 700; color: var(--muted); cursor: pointer; font-family: inherit; min-height: 52px; border-radius: 12px; }
+  .tabbar button:hover { background: var(--bg); }
+  .tabbar button.on { color: var(--red); font-weight: 900; background: #FDECEF; }
+  .nav-ic { width: 22px; height: 22px; display: block; }
+  /* 套餐卡片下单按钮 / 不可点击态 */
+  .btn-order { margin-top: 12px; width: 100%; min-height: 44px; border: 2.5px solid var(--ink); border-radius: 999px; background: var(--red); color: #fff; font-weight: 900; font-size: 14px; cursor: pointer; font-family: inherit; box-shadow: var(--shadow-sm); transition: transform .08s ease; }
+  .btn-order:active { transform: translate(2px,2px); box-shadow: 1px 1px 0 rgba(0,0,0,.14); }
+  .plan.disabled { opacity: .62; cursor: not-allowed; filter: grayscale(.3); }
+  .no-order { margin-top: 12px; text-align: center; font-size: 12px; color: var(--muted); border: 1.5px dashed var(--line); border-radius: 10px; padding: 9px; }
+
+  .load { display: inline-flex; align-items: center; gap: 8px; color: var(--blue); font-size: 13px; font-weight: 700; }
+  .load .spin { width: 14px; height: 14px; border: 2px solid var(--blue); border-top-color: transparent; border-radius: 50%; animation: rot .7s linear infinite; }
+  @keyframes rot { to { transform: rotate(360deg); } }
+
+  /* Toast 交互反馈 */
+  #toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%) translateY(20px); z-index: 95; background: var(--ink); color: var(--gold); border: 2px solid var(--gold); border-radius: 999px; padding: 10px 18px; font-size: 13px; font-weight: 800; opacity: 0; transition: opacity .2s, transform .2s; pointer-events: none; }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  @media (max-width: 860px) {
+    .promos { grid-template-columns: 1fr; }
+    .plans { grid-template-columns: 1fr; }
+    .inputs { grid-template-columns: 1fr; gap: 10px; }
+    .summary { flex-direction: column; }
+    .menuform { grid-template-columns: 1fr; }
+    .coupons { grid-template-columns: repeat(2,1fr); }
+  }
+  @media (max-width: 480px) {
+    .scene { height: 220px; }
+    .hud .title { font-size: 16px; }
+  }
+
+  /* ========== 定位状态卡 ========== */
+  .geo-card { background: var(--panel); border: 2.5px solid var(--ink); border-radius: var(--r); margin-bottom: 14px; padding: 14px 16px; box-shadow: var(--shadow); }
+  .geo-top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .geo-ic { width: 40px; height: 40px; border-radius: 12px; background: var(--blue-soft); border: 2px solid var(--ink); display: flex; align-items: center; justify-content: center; font-size: 22px; }
+  .geo-state { font-size: 14px; font-weight: 800; }
+  .geo-state.ok { color: var(--green); } .geo-state.warn { color: var(--orange); } .geo-state.err { color: var(--red); }
+  .geo-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .geo-actions { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; }
+  .geo-btn { border: 2px solid var(--ink); background: var(--panel); color: var(--blue); border-radius: 999px; padding: 7px 14px; font-size: 12px; font-weight: 800; cursor: pointer; font-family: inherit; min-height: 38px; box-shadow: var(--shadow-sm); }
+  .geo-btn.gold { background: var(--gold); color: #5A2D00; }
+  .geo-btn:active { transform: translate(2px,2px); box-shadow: 1px 1px 0 rgba(0,0,0,.14); }
+  .geo-city { display: flex; align-items: center; gap: 8px; margin-top: 12px; font-size: 13px; }
+  .geo-city select { flex: 1; min-width: 0; padding: 9px 11px; border: 2px solid var(--line); border-radius: 10px; font-size: 14px; font-family: inherit; background: #FFFDF8; }
+  .geo-hint { font-size: 12px; color: var(--muted); margin-top: 8px; line-height: 1.6; }
+
+  /* ========== 最近门店大卡 ========== */
+  .storecard { display: flex; gap: 14px; align-items: center; background: linear-gradient(160deg,#fff,#FFF7E6); border: 2.5px solid var(--ink); border-radius: var(--r); margin-bottom: 14px; padding: 16px; box-shadow: var(--shadow); position: relative; overflow: hidden; }
+  .storecard .bigic { width: 56px; height: 56px; border-radius: 14px; background: var(--red); color: var(--gold); display: flex; align-items: center; justify-content: center; font-size: 30px; border: 2px solid var(--ink); flex: 0 0 auto; }
+  .storecard .info { flex: 1; min-width: 0; }
+  .storecard .nm { font-size: 17px; font-weight: 900; }
+  .storecard .meta { font-size: 12px; color: var(--muted); margin-top: 4px; line-height: 1.5; }
+  .storecard .meta .dist { color: var(--blue); font-weight: 800; }
+  .status-pill { display: inline-block; font-size: 11px; font-weight: 800; padding: 2px 9px; border-radius: 999px; margin-left: 6px; }
+  .status-pill.open { background: var(--green-soft); color: var(--green); border: 1.5px solid #A5D6A7; }
+  .status-pill.closed { background: #FDEAEC; color: var(--red); border: 1.5px solid #F3B6BF; }
+  .status-pill.unknown { background: #EEF1F5; color: var(--muted); border: 1.5px solid #D7DCE3; }
+  .storecard .nav { border: 2px solid var(--ink); background: var(--blue); color: #fff; border-radius: 12px; padding: 10px 14px; font-size: 13px; font-weight: 800; cursor: pointer; font-family: inherit; min-height: 44px; box-shadow: var(--shadow-sm); white-space: nowrap; }
+  .storecard .nav:active { transform: translate(2px,2px); box-shadow: 1px 1px 0 rgba(0,0,0,.14); }
+  .storecard .setcur { display: block; margin-top: 8px; font-size: 12px; color: var(--blue); font-weight: 700; background: none; border: none; cursor: pointer; font-family: inherit; text-decoration: underline; }
+
+  /* ========== 附近列表 / 排序 / 品牌过滤 ========== */
+  .sortbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+  .sortbar .lbl { font-size: 13px; font-weight: 700; color: var(--muted); }
+  .seg { display: inline-flex; border: 2px solid var(--ink); border-radius: 999px; overflow: hidden; }
+  .seg button { border: none; background: var(--panel); padding: 7px 14px; font-size: 12px; font-weight: 800; color: var(--muted); cursor: pointer; font-family: inherit; min-height: 36px; }
+  .seg button.on { background: var(--red); color: #fff; }
+  .brandseg button.on { background: var(--blue); color: #fff; }
+  .storelist { list-style: none; }
+  .storelist li { display: flex; gap: 12px; align-items: center; background: var(--panel); border: 2px solid var(--line); border-radius: 12px; padding: 12px 14px; margin-bottom: 10px; box-shadow: var(--shadow-sm); cursor: pointer; transition: border-color .12s, transform .08s; }
+  .storelist li:active { transform: translate(2px,2px); }
+  .storelist li.cur { border-color: var(--red); box-shadow: var(--shadow); }
+  .storelist li .li-ic { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 22px; border: 2px solid var(--ink); flex: 0 0 auto; background: var(--gold); }
+  .storelist li .li-info { flex: 1; min-width: 0; }
+  .storelist li .li-nm { font-size: 15px; font-weight: 800; }
+  .storelist li .li-meta { font-size: 12px; color: var(--muted); margin-top: 3px; line-height: 1.5; }
+  .storelist li .li-meta .dist { color: var(--blue); font-weight: 800; }
+  .storelist li .li-right { text-align: right; flex: 0 0 auto; }
+  .storelist li .li-brand { font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 999px; background: #FDECEF; color: var(--red); }
+  .storelist li .li-brand.other { background: var(--blue-soft); color: var(--blue); }
+
+  /* ========== 弹层（忌口 / 菜品详情） ========== */
+  .modal-mask { position: fixed; inset: 0; background: rgba(28,23,20,.5); z-index: 100; display: none; align-items: flex-end; justify-content: center; }
+  .modal-mask.show { display: flex; }
+  .modal { background: var(--bg); width: 100%; max-width: 640px; max-height: 88vh; overflow-y: auto; border: 3px solid var(--ink); border-bottom: none; border-radius: 18px 18px 0 0; box-shadow: 0 -6px 0 rgba(0,0,0,.18); padding: 18px 16px 28px; animation: sheetUp .26s ease; }
+  @keyframes sheetUp { from { transform: translateY(40px); opacity: .6; } to { transform: none; opacity: 1; } }
+  .modal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .modal-head h3 { font-size: 18px; font-weight: 900; color: var(--red); }
+  .modal-close { border: 2px solid var(--ink); background: var(--panel); border-radius: 50%; width: 36px; height: 36px; font-size: 16px; font-weight: 900; cursor: pointer; font-family: inherit; }
+  .modal-body { font-size: 13px; }
+  .modal-foot { display: flex; gap: 12px; margin-top: 16px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 6px; }
+  .chip { border: 2px solid var(--ink); background: var(--panel); border-radius: 999px; padding: 8px 13px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; display: flex; align-items: center; gap: 5px; }
+  .chip.on { background: var(--red); color: #fff; }
+  .chip .ck { font-size: 12px; }
+  .custombox { margin-top: 12px; }
+  .custombox label { font-size: 13px; font-weight: 700; color: var(--muted); display: block; margin-bottom: 6px; }
+  .customtags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+  .ctag { display: inline-flex; align-items: center; gap: 5px; background: #FFF4D6; border: 1.5px solid #F2D89B; color: #7A4A00; border-radius: 999px; padding: 5px 10px; font-size: 12px; font-weight: 700; }
+  .ctag b { cursor: pointer; font-weight: 900; }
+  .custombox input { width: 100%; min-width: 0; padding: 10px 12px; border: 2px solid var(--line); border-radius: 10px; font-size: 14px; font-family: inherit; background: #FFFDF8; }
+  .pref-note { font-size: 12px; color: var(--muted); margin-top: 10px; line-height: 1.6; }
+
+  /* 菜品详情 */
+  .dish-hero { display: flex; gap: 12px; align-items: center; margin-bottom: 12px; }
+  .dish-hero .di { width: 52px; height: 52px; border-radius: 14px; background: var(--gold); color: var(--red); display: flex; align-items: center; justify-content: center; font-size: 28px; border: 2px solid var(--ink); }
+  .dish-hero .dn { font-size: 18px; font-weight: 900; }
+  .dish-hero .dp { font-size: 13px; color: var(--muted); margin-top: 2px; }
+  .dish-allergens { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0; }
+  .ab { font-size: 12px; font-weight: 800; padding: 4px 10px; border-radius: 999px; border: 1.5px solid; }
+  .ab.safe { background: var(--green-soft); color: var(--green); border-color: #A5D6A7; }
+  .ab.avoid { background: #FDEAEC; color: var(--red); border-color: #F3B6BF; }
+  .ab.unknown { background: #EFEFEF; color: #777; border-color: #ddd; }
+  .dish-sec { font-size: 13px; font-weight: 800; color: var(--red); margin: 14px 0 6px; }
+  .dish-ing { font-size: 13px; color: var(--ink); line-height: 1.7; background: var(--panel); border: 2px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+  .dish-warn { background: #FDEAEC; border: 2px solid #F3B6BF; color: var(--red-deep); border-radius: 10px; padding: 10px 12px; font-size: 13px; font-weight: 700; margin-top: 10px; line-height: 1.6; }
+
+  /* 菜品列表中的忌口标注 */
+  .avoid-badge { display: inline-block; font-size: 10px; font-weight: 800; color: #fff; background: var(--red); border-radius: 999px; padding: 1px 7px; margin-left: 4px; }
+  .li-dish { cursor: pointer; }
+  .li-dish:hover { background: var(--bg); }
+  /* 信息图标 + 说明弹层（说明性文字默认隐藏，点击图标展示） */
+  .info-dot { width:18px; height:18px; border-radius:50%; border:1.5px solid #c9a468; background:#fffaf0; color:#8a6b3f; font-size:11px; font-weight:800; line-height:1; cursor:pointer; flex:0 0 auto; display:inline-flex; align-items:center; justify-content:center; padding:0; vertical-align:middle; }
+  .info-dot:hover { background:#f5e7cc; }
+  .info-pop { position:fixed; z-index:1200; width:280px; max-width:calc(100vw - 24px); background:#fffdf7; border:1.5px solid #e2c79a; border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,.16); padding:10px 12px; font-size:12px; line-height:1.7; color:#5b4a33; display:none; }
+  .info-pop.show { display:block; }
+  /* 附近门店三态（加载中 / 失败 / 空数据） */
+  .nb-state { display:flex; flex-direction:column; align-items:center; gap:10px; padding:28px 16px; color:var(--muted); font-size:13px; text-align:center; line-height:1.7; }
+  .nb-state.err { color:#b3261e; }
+  .nb-state .spin { width:18px; height:18px; border:2.5px solid #e8d9bd; border-top-color:#C8102E; border-radius:50%; animation:spin .8s linear infinite; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- ===== 顶部 HUD ===== -->
+  <div class="hud">
+    <div class="title"><span class="badge">M</span> 麦门冒险 · 省钱闯关</div>
+    <div class="right">
+      <span class="live"><span class="dot" id="liveDot"></span>实时：<span id="liveStatus">未连接</span></span>
+      <button class="btn-connect" id="connectBtn" type="button">连接实时数据</button>
+    </div>
+  </div>
+
+  <!-- 代理状态/错误横幅 -->
+  <div class="proxywarn" id="proxyWarn"></div>
+
+  <!-- ===== 像素场景：角色动画舞台 ===== -->
+  <div class="scene" id="scene" aria-label="麦门小镇场景，点击地面让角色走动">
+    <div class="scene-hint">👆 点击地面，让麦宝走过去</div>
+    <div class="sun" aria-hidden="true"></div>
+    <div class="bld" aria-hidden="true">
+      <div class="roof"></div>
+      <div class="wall"><div class="win l"></div><div class="win r"></div><div class="door"></div></div>
+    </div>
+    <div class="sign" aria-hidden="true">麦当劳 · 麦门小镇</div>
+    <div class="ground" aria-hidden="true"></div>
+
+    <!-- 站点招牌：点击引导切换视图（带场景转场） -->
+    <button class="station" data-go="home" type="button" style="left:12%"><span class="ic">🍔</span>省钱计算器</button>
+    <button class="station" data-go="nutrition" type="button" style="left:32%"><span class="ic">📊</span>营养对比</button>
+    <button class="station" data-go="nearby" type="button" style="left:51%"><span class="ic">📍</span>附近门店</button>
+    <button class="station" data-go="traps" type="button" style="left:70%"><span class="ic">⚠️</span>凑单陷阱</button>
+    <button class="station" data-go="mine" type="button" style="left:89%"><span class="ic">👛</span>我的</button>
+
+    <!-- 角色：纯 SVG 像素小人，零依赖 -->
+    <div class="hero-shadow" id="heroShadow"></div>
+    <svg id="hero" class="idle" viewBox="0 0 54 78" aria-label="麦宝角色">
+      <!-- 腿 -->
+      <rect class="leg leg-l" x="17" y="54" width="8" height="20" rx="3" fill="#3a2c20"/>
+      <rect class="leg leg-r" x="29" y="54" width="8" height="20" rx="3" fill="#3a2c20"/>
+      <!-- 身体（红衣） -->
+      <rect x="14" y="32" width="26" height="26" rx="8" fill="#C8102E" stroke="#1C1714" stroke-width="2"/>
+      <!-- 手臂 -->
+      <rect x="8" y="34" width="8" height="18" rx="4" fill="#FFC72C" stroke="#1C1714" stroke-width="2"/>
+      <rect x="38" y="34" width="8" height="18" rx="4" fill="#FFC72C" stroke="#1C1714" stroke-width="2"/>
+      <!-- 头 -->
+      <circle cx="27" cy="20" r="13" fill="#FFE0B8" stroke="#1C1714" stroke-width="2"/>
+      <!-- 帽子（金 M） -->
+      <path d="M14 16 a13 13 0 0 1 26 0 z" fill="#C8102E" stroke="#1C1714" stroke-width="2"/>
+      <text x="27" y="15" font-size="11" text-anchor="middle" fill="#FFC72C" font-weight="900">M</text>
+      <!-- 眼睛 -->
+      <circle cx="22" cy="21" r="2.2" fill="#1C1714"/>
+      <circle cx="32" cy="21" r="2.2" fill="#1C1714"/>
+      <!-- 腮红 -->
+      <circle cx="19" cy="25" r="2.4" fill="#FF9AA2" opacity=".7"/>
+      <circle cx="35" cy="25" r="2.4" fill="#FF9AA2" opacity=".7"/>
+    </svg>
+  </div>
+
+  <!-- ===== 首页视图 ===== -->
+  <div id="view-home" class="view on">
+    <div class="promos">
+      <div class="promo pix">
+        <div class="ptag">1024 程序员节 · 营养挑战</div>
+        <div class="ptitle">控卡点餐挑战<br>预算内 · 热量内最健康</div>
+        <div class="psub">输入预算与营养目标，一键算出最优方案</div>
+        <button class="go" id="goCalc" type="button">开始体验</button>
+      </div>
+      <div class="promo sea">
+        <div class="ptag">麦门营养管家</div>
+        <div class="ptitle">双目标比价<br>省钱 × 营养</div>
+        <div class="price">¥26.0<small> 起 · 示例数据</small></div>
+        <button class="go" id="goDemo" type="button">填入示例</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="ch"><b>麦当劳 MCP 实时链路</b><span style="font-size:12px;color:var(--muted)">数据经本地代理转发，Token 不进浏览器</span></div>
+      <div class="steps">
+        <span class="step">available-coupons</span><span class="arrow">→</span>
+        <span class="step">query-meals</span><span class="arrow">→</span>
+        <span class="step">list-nutrition-foods</span><span class="arrow">→</span>
+        <span class="step">calculate-price</span><span class="arrow">→</span>
+        <span class="step">create-order</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="ch"><h2 style="font-size:16px;font-weight:900;color:var(--blue)">实时官方数据</h2><span style="display:inline-flex;align-items:center;gap:6px"><button class="info-dot" data-info="realtime" type="button" aria-label="实时数据来源说明">?</button><span class="src offline" id="srcBadge">数据源：离线示例</span></span></div>
+      <div id="liveCouponsWrap" style="display:none">
+        <div style="font-size:13px;font-weight:700;margin-bottom:6px;color:var(--blue)">当前可领券（实时）</div>
+        <div class="couponchips" id="liveCoupons"></div>
+      </div>
+      <div class="nutristat" id="nutriStat"></div>
+      <div class="menuform">
+        <div><label for="cityInput">城市 <button class="info-dot" data-info="city" type="button" aria-label="城市说明">?</button></label><input id="cityInput" type="text" placeholder="如 上海" value="上海"></div>
+        <div><label for="kwInput">商圈 / 地标关键词</label><input id="kwInput" type="text" placeholder="如 人民广场" value="人民广场"></div>
+        <button class="mbtn" id="menuBtn" type="button">加载实时菜单</button>
+      </div>
+      <div class="menuform" style="grid-template-columns:1fr auto;margin-top:8px;align-items:center">
+        <select id="storeSelect" disabled><option>先点「加载实时菜单」</option></select>
+        <button class="mbtn ghost" id="useStoreBtn" type="button" disabled>用该门店算价</button>
+      </div>
+      <div class="menuresult" id="menuResult"></div>
+    </div>
+
+    <div class="store">
+      <div class="nm" id="storeName">未选择门店<small id="storeSub">离线示例模式</small></div>
+      <button class="sw" id="storeBtn" type="button">📍 附近门店 ›</button>
+    </div>
+
+    <section class="panel" aria-label="参数输入">
+      <div class="ph"><h2>点餐参数</h2><span class="pill" id="dataPill">离线示例 · 无需 Token</span></div>
+      <div class="inputs">
+        <div class="field"><label for="budget">总预算（元）</label><input id="budget" type="number" inputmode="decimal" min="0" step="0.5" placeholder="如 40" value="40"></div>
+        <div class="field"><label for="kcal">热量上限 <span class="hint">可留空</span></label><input id="kcal" type="number" inputmode="decimal" min="0" step="10" placeholder="如 700"></div>
+        <div class="field"><label for="protein">蛋白下限 <span class="hint">可留空</span></label><input id="protein" type="number" inputmode="decimal" min="0" step="1" placeholder="如 25"></div>
+      </div>
+      <div class="actions">
+        <button class="btn btn-gold" id="runBtn" type="button">计算最优方案</button>
+        <button class="btn btn-line" id="demoBtn" type="button">填入示例</button>
+      </div>
+      <label style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:var(--muted);margin-top:12px;cursor:pointer"><input type="checkbox" id="hideAvoid"> 隐藏含忌口菜品（按「我的 → 忌口/过敏原」设置过滤）</label>
+    </section>
+
+    <div id="result"></div>
+
+    <div class="note" style="display:flex;align-items:center;justify-content:center;gap:8px">
+      <span style="font-size:12px;color:var(--muted)">页面与数据说明</span>
+      <button class="info-dot" data-info="about" type="button" aria-label="页面与数据说明">i</button>
+    </div>
+  </div>
+
+  <!-- ===== 营养对比视图 ===== -->
+  <div id="view-nutrition" class="view">
+    <div class="panel"><div class="ph"><h2>营养对比</h2><span class="pill">切换方案维度</span></div>
+      <div class="bars" id="barsHolder" style="margin:0;border:none;box-shadow:none;padding:0;"></div></div>
+    <div class="note"><b>读法：</b>条长代表总热量/总蛋白，虚线为你的约束上限/下限；「每元蛋白」越高，同样的钱买到越多蛋白质。</div>
+  </div>
+
+  <!-- ===== 凑单陷阱视图 ===== -->
+  <div id="view-traps" class="view">
+    <div class="panel"><div class="ph"><h2>凑单陷阱提示</h2><span class="pill">省钱防坑</span></div>
+      <div id="trapsHolder" style="padding:0;"></div></div>
+    <div class="note"><b>三类陷阱：</b>① 用券反而更贵 ② 无优惠凑单小食 ③ 预算没花满。</div>
+  </div>
+
+  <!-- ===== 我的视图 ===== -->
+  <div id="view-mine" class="view">
+    <div class="mine-card">
+      <div class="row">
+        <div class="avatar">M</div>
+        <div>        <div class="nm">麦门营养管家</div><div class="mb">省钱点餐助手</div></div>
+      </div>
+      <div class="coupons">
+        <div class="cp"><b>0</b><span>到店券</span></div>
+        <div class="cp"><b>0</b><span>外送券</span></div>
+        <div class="cp"><b>0</b><span>送卡券</span></div>
+        <div class="cp"><b id="cpExchange">2</b><span>兑换券</span></div>
+      </div>
+      <div class="wallet">
+        <div class="bal"><span>钱包余额</span><b>¥0.00</b></div>
+        <button class="pay" id="walletPay" type="button">付款</button>
+      </div>
+    </div>
+    <div class="mine-card">
+      <ul class="list2">
+        <li id="dietItem" style="cursor:pointer">忌口 / 过敏原 <span class="go" id="dietCount">›</span></li>
+        <li>我的订单 <span class="go">›</span></li>
+        <li>我的收藏 <span class="go">›</span></li>
+        <li>发票管理 <span class="go">›</span></li>
+        <li>我的地址 <span class="go">›</span></li>
+        <li>车辆管理 <span class="go">›</span></li>
+        <li>学生专属 <span class="go">›</span></li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ===== 附近门店视图 ===== -->
+  <div id="view-nearby" class="view">
+    <div class="geo-card">
+      <div class="geo-top">
+        <div class="geo-ic">📍</div>
+        <div style="flex:1;min-width:0">
+          <div class="geo-state warn" id="geoState">定位中…</div>
+          <div class="geo-sub" id="geoSub">正在申请定位权限</div>
+        </div>
+        <div class="geo-actions" style="display:flex;gap:8px;align-items:center">
+          <button class="geo-btn gold" id="geoRetry" type="button">重新定位</button>
+          <button class="info-dot" data-info="geo" type="button" aria-label="定位说明">?</button>
+        </div>
+      </div>
+      <div class="geo-city">
+        <span>或手动选择城市：</span>
+        <select id="citySelect"></select>
+      </div>
+    </div>
+
+    <div class="storecard" id="nearestCard"></div>
+
+    <div class="sortbar">
+      <button class="info-dot" data-info="nearby" type="button" aria-label="门店数据说明">?</button>
+      <span class="lbl">排序</span>
+      <div class="seg" id="sortSeg">
+        <button data-sort="dist" class="on" type="button">距离</button>
+        <button data-sort="open" type="button">营业状态</button>
+      </div>
+    </div>
+
+    <ul class="storelist" id="storeList"></ul>
+  </div>
+
+  <!-- ===== 忌口 / 过敏原 弹层 ===== -->
+  <div class="modal-mask" id="allergenModal">
+    <div class="modal">
+      <div class="modal-head"><h3>忌口 / 过敏原</h3><button class="modal-close" id="allergenClose" type="button">✕</button></div>
+      <div class="modal-body">
+        <div style="font-size:13px;color:var(--muted);margin-bottom:6px">选择你需要规避的过敏原与饮食偏好（可多选）：</div>
+        <div class="chips" id="allergenChips"></div>
+        <div class="custombox">
+          <label>自定义忌口（如「香菜」「葱」）</label>
+          <div class="customtags" id="customTags"></div>
+          <input id="customInput" type="text" placeholder="输入后回车添加" maxlength="20" />
+        </div>
+        <div class="pref-note">设置保存在本机（localStorage），并在菜品列表与详情页生效：含所选过敏原的菜品标注「含X」并可一键过滤。</div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn btn-line" id="allergenReset" type="button" style="flex:0 0 auto">清空</button>
+        <button class="btn btn-gold" id="allergenSave" type="button">保存设置</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 菜品详情 弹层 ===== -->
+  <div class="modal-mask" id="dishModal">
+    <div class="modal">
+      <div class="modal-head"><h3>菜品详情</h3><button class="modal-close" id="dishClose" type="button">✕</button></div>
+      <div class="modal-body" id="dishBody"></div>
+      <div class="modal-foot">
+        <button class="btn btn-gold" id="dishClose2" type="button">知道了</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 信息说明弹层（所有 ? / i 图标共用） ===== -->
+  <div class="info-pop" id="infoPop" role="tooltip"></div>
+
+  <!-- ===== 底部导航（固定悬停于底部，图标使用麦当劳相关图形） ===== -->
+  <div class="tabbar" id="tabbar">
+    <button data-tab="home" class="on" type="button"><svg class="nav-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9c0-4 18-4 18 0v2.2H3z" fill="#E2A35B"/><rect x="3" y="11.2" width="18" height="2.4" fill="#3FA34D"/><rect x="3" y="13.6" width="18" height="3" fill="#8B4513"/><rect x="3" y="16.6" width="18" height="3.4" rx="1.7" fill="#E2A35B"/></svg><span>首页</span></button>
+    <button data-tab="nutrition" type="button"><svg class="nav-ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="13" width="4" height="8" fill="#C8102E"/><rect x="10" y="8" width="4" height="13" fill="#E2572C"/><rect x="17" y="4" width="4" height="17" fill="#F2A93B"/></svg><span>方案</span></button>
+    <button data-tab="nearby" type="button"><svg class="nav-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2C7.6 2 4 5.6 4 10c0 5.2 8 12 8 12s8-6.8 8-12c0-4.4-3.6-8-8-8z" fill="#C8102E"/><circle cx="12" cy="10" r="3" fill="#fff"/></svg><span>附近</span></button>
+    <button data-tab="traps" type="button"><svg class="nav-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 22 20H2z" fill="#F2A93B"/><rect x="11" y="9" width="2" height="6" fill="#1A1A1A"/><circle cx="12" cy="17.2" r="1.2" fill="#1A1A1A"/></svg><span>陷阱</span></button>
+    <button data-tab="mine" type="button"><svg class="nav-ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4" fill="#C8102E"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8z" fill="#C8102E"/></svg><span>我的</span></button>
+  </div>
+
+</div>
+
+<!-- 场景转场幕布 -->
+<div id="curtain"><span class="m">🍔 加载中…</span></div>
+<!-- Toast -->
+<div id="toast"></div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ========== 全局错误兜底（避免静默失效） ========== */
+  var proxyWarnEl = null;
+  function showProxyWarn(kind, html) {
+    if (!proxyWarnEl) proxyWarnEl = document.getElementById("proxyWarn");
+    if (!proxyWarnEl) return;
+    proxyWarnEl.className = "proxywarn " + (kind || "warn");
+    proxyWarnEl.innerHTML = html;
+    proxyWarnEl.style.display = "block";
+  }
+  function hideProxyWarn() {
+    if (!proxyWarnEl) proxyWarnEl = document.getElementById("proxyWarn");
+    if (proxyWarnEl) { proxyWarnEl.style.display = "none"; proxyWarnEl.innerHTML = ""; }
+  }
+  window.addEventListener("error", function (ev) {
+    showProxyWarn("err", "⚠ 页面脚本出错：" + (ev.message || "未知错误") + "（行 " + (ev.lineno || "?") + "）。");
+  });
+
+  /* ========== Toast 交互反馈 ========== */
+  var toastEl = document.getElementById("toast"), toastTimer = null;
+  function toast(msg) {
+    toastEl.textContent = msg; toastEl.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { toastEl.classList.remove("show"); }, 1800);
+  }
+
+  /* ========== 角色控制器（待机/行走/交互/转场） ==========
+   * 纯 CSS 过渡驱动位移，不用 JS 动画循环 → 流畅且不卡顿。
+   * 点击地面：角色走到点击位置（.walking 触发腿部摆动），到达后回到 .idle。
+   * 点击站点/按钮：先 hop 一下再切视图，并用幕布做场景转场。 */
+  var hero = document.getElementById("hero");
+  var heroShadow = document.getElementById("heroShadow");
+  var scene = document.getElementById("scene");
+  var walking = false;
+
+  function placeHero(leftPx) {
+    hero.style.left = leftPx + "px";
+    heroShadow.style.left = (leftPx + 4) + "px";
+  }
+  function heroWalkTo(leftPx, faceDir, done) {
+    // 修复：行走中再次点击时“重新开始”而非忽略，避免连点站点无反应（交互闭环）
+    clearTimeout(hero._wt);
+    walking = true;
+    hero.classList.remove("idle");
+    hero.classList.add("walking");
+    if (faceDir) hero.classList.toggle("flip", faceDir < 0);
+    placeHero(leftPx);
+    hero._wt = setTimeout(function () {
+      hero.classList.remove("walking");
+      hero.classList.add("idle");
+      hero.classList.remove("flip");
+      walking = false;
+      if (done) done();
+    }, 950);
+  }
+  function heroHop() {
+    hero.classList.remove("hop"); void hero.offsetWidth; hero.classList.add("hop");
+    clearTimeout(hero._ht); hero._ht = setTimeout(function () { hero.classList.remove("hop"); }, 420);
+  }
+
+  scene.addEventListener("click", function (e) {
+    if (e.target.closest(".station")) return; // 站点自身有处理器
+    var rect = scene.getBoundingClientRect();
+    var x = e.clientX - rect.left;
+    var minX = 20, maxX = rect.width - 70;
+    var target = Math.max(minX, Math.min(maxX, x));
+    var cur = parseFloat(hero.style.left) || 30;
+    heroWalkTo(target, target - cur);
+  });
+
+  // 站点：走动 + 转场切视图
+  scene.querySelectorAll(".station").forEach(function (st) {
+    st.addEventListener("click", function (e) {
+      e.stopPropagation();
+      var go = st.getAttribute("data-go");
+      var rect = scene.getBoundingClientRect();
+      var target = parseFloat(st.style.left) - 27; // 站到招牌下方
+      heroHop();
+      heroWalkTo(Math.max(20, Math.min(rect.width - 70, target)), 0, function () {
+        transitionTo(go);
+      });
+    });
+  });
+
+  /* ========== 场景转场幕布 ========== */
+  var curtain = document.getElementById("curtain");
+  function transitionTo(name) {
+    curtain.classList.add("show");
+    setTimeout(function () {
+      switchView(name);
+      setTimeout(function () { curtain.classList.remove("show"); }, 180);
+    }, 260);
+  }
+
+  /* ========== 加载即探测本地代理 ========== */
+  async function checkProxy() {
+    if (!proxyWarnEl) proxyWarnEl = document.getElementById("proxyWarn");
+    try {
+      var ctl = new AbortController();
+      var timer = setTimeout(function () { ctl.abort(); }, 5000);
+      var resp = await fetch("/api/mcp", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: "now-time-info", arguments: {} }), signal: ctl.signal
+      });
+      clearTimeout(timer);
+      var j = await resp.json();
+      if (j && j.ok) { hideProxyWarn(); return true; }
+      showProxyWarn("warn", "⚠ 本地代理已连，但返回错误：" + (j.error || "未知") + "。实时数据暂不可用，<b>离线示例模式</b>下功能可正常使用。");
+      return false;
+    } catch (e) {
+      showProxyWarn("warn", "⚠ 未检测到本地代理（mcp-proxy.js）。<b>实时官方数据不可用</b>；<b>离线示例模式</b>下功能可正常使用。如需实时数据：先运行 <b>node mcp-proxy.js</b>，再用 <b>http://localhost:8787/</b> 打开本页。");
+      return false;
+    }
+  }
+
+  /* ========== 离线示例（对齐官方样本） ========== */
+  var MEALS = {
+    "920215": {"name":"培根安格斯厚牛堡大套餐","currentPrice":"55.5","originalPrice":"65.5","discountType":"随单购麦金卡优惠","kcal":890,"protein":41.0},
+    "9900008169": {"name":"双层深海鳕鱼堡","currentPrice":"25","originalPrice":"26.5","discountType":"促销优惠","kcal":480,"protein":22.0},
+    "520860": {"name":"咔滋咔滋脆鸡腿堡","currentPrice":"26","originalPrice":"26","discountType":null,"kcal":540,"protein":25.0},
+    "6102": {"name":"苹果片一袋(60g)","currentPrice":"7","originalPrice":"7","discountType":null,"kcal":100,"protein":0.5},
+    "920216": {"name":"麦辣鸡腿堡套餐","currentPrice":"33","originalPrice":"38","discountType":"促销优惠","kcal":800,"protein":26.0},
+    "920217": {"name":"中薯条","currentPrice":"12","originalPrice":"12","discountType":null,"kcal":340,"protein":4.0},
+    "920218": {"name":"可乐中杯","currentPrice":"8","originalPrice":"8","discountType":null,"kcal":190,"protein":0.0}
+  };
+  var COUPONS = [
+    {"title":"9.9元薯你最甜","couponId":"A1","couponCode":"MCD001","price":"9.9","products":[{"productCode":"920217","productName":"中薯条"}]},
+    {"title":"板烧鸡腿堡立减5元","couponId":"A2","couponCode":"MCD002","products":[{"productCode":"9900008169","productName":"双层深海鳕鱼堡"}]}
+  ];
+
+  /* ========== 套餐 → 官方下单/付款页 映射配置 ==========
+   * 按套餐 ID 维护（cheapest / best_value / richest），与 recommend() 返回对象的键名一一对应。
+   * 后续增删套餐只需改这里：新增键即新增映射；删除键则该套餐卡片自动置为「不可点击」，避免无效跳转。
+   * 取值为麦当劳官方网上订餐平台地址（https://mcd.cn，会员协议明示的官方订餐平台；点击后在新标签页打开）。留空字符串 "" 表示「暂未开通官方下单」。
+   *
+   * 实时建单策略（见 resolvePlanPayUrl）：
+   *  - 已连接官方 MCP 且已选真实门店时，直接调 create-order 按所选套餐组合实时生成 payH5Url 并打开（真正闭环）；
+   *  - 其余情况（离线 / 未选门店）一律回退到下方配置的官方订餐平台地址（https://mcd.cn），保证点击始终有效、绝不出现无效跳转。
+   * 注：create-order 会创建「15 分钟内未支付自动取消、不扣款」的真实订单，故仅在用户已明确选店后触发。 */
+  var PLAN_PAY_LINKS = {
+    cheapest:   "https://mcd.cn",
+    best_value: "https://mcd.cn",
+    richest:    "https://mcd.cn"
+  };
+
+  /* ========== 忌口 / 过敏原 选项（覆盖常见过敏原 + 饮食偏好） ========== */
+  var ALLERGEN_OPTIONS = [
+    {id:"peanut", name:"花生", icon:"🥜"},
+    {id:"seafood", name:"海鲜", icon:"🦐"},
+    {id:"dairy", name:"乳制品", icon:"🥛"},
+    {id:"gluten", name:"麸质/小麦", icon:"🌾"},
+    {id:"egg", name:"鸡蛋", icon:"🥚"},
+    {id:"soy", name:"大豆", icon:"🫘"},
+    {id:"nut", name:"坚果", icon:"🌰"},
+    {id:"sesame", name:"芝麻", icon:"⚪"},
+    {id:"vegetarian", name:"素食", icon:"🥬"},
+    {id:"nospicy", name:"不吃辣", icon:"🌶️"}
+  ];
+  var ALLERGEN_NAME = {}; ALLERGEN_OPTIONS.forEach(function (a) { ALLERGEN_NAME[a.id] = a.name; });
+
+  /* ========== 菜品过敏原 / 成分 / 饮食属性（离线示例；实时菜单暂无该字段） ==========
+   * 结构：allergens=需规避的过敏原 id 列表；ingredients=成分文本（用于自定义忌口匹配）；
+   * veg=是否素食；spicy=是否辣。该数据用于「忌口过滤 + 菜品标注 + 详情页」。 */
+  var MEAL_META = {
+    "920215": { allergens:["gluten","dairy","egg","soy"], veg:false, spicy:false, ingredients:"安格斯牛肉饼、培根、芝士片、生菜、番茄、汉堡胚（含麸质）、蛋黄酱（含蛋/大豆）" },
+    "9900008169": { allergens:["gluten","seafood","egg","soy"], veg:false, spicy:false, ingredients:"深海鳕鱼排（海鲜）、汉堡胚（含麸质）、塔塔酱（含蛋/大豆）" },
+    "520860": { allergens:["gluten","egg","soy"], veg:false, spicy:false, ingredients:"鸡腿肉、裹粉（含麸质/大豆）、鸡蛋、生菜" },
+    "6102": { allergens:[], veg:true, spicy:false, ingredients:"苹果" },
+    "920216": { allergens:["gluten","egg","soy"], veg:false, spicy:true, ingredients:"辣味鸡腿肉、汉堡胚（含麸质）、辣椒、鸡蛋、大豆" },
+    "920217": { allergens:["soy"], veg:true, spicy:false, ingredients:"马铃薯、煎炸油（含大豆）" },
+    "920218": { allergens:[], veg:true, spicy:false, ingredients:"碳酸水、果葡糖浆、焦糖色" }
+  };
+
+  /* ========== 城市中心（定位 → 自动匹配最近城市；手动选城时估算参照） ==========
+   * 门店数据已全部改为官方 query-nearby-stores 实时获取，不再内置示例门店。 */
+  /* 主要城市中心坐标：用于「自动定位→就近城市」匹配与手动选城回退；按定位坐标取 Haversine 最近者作为官方接口的 city 入参 */
+  var CITY_CENTERS = {
+    "上海": { lat:31.2304, lng:121.4737 },
+    "北京": { lat:39.9042, lng:116.4074 },
+    "广州": { lat:23.1291, lng:113.2644 },
+    "成都": { lat:30.5728, lng:104.0668 },
+    "深圳": { lat:22.5431, lng:114.0579 },
+    "郑州": { lat:34.7466, lng:113.6253 },
+    "杭州": { lat:30.2741, lng:120.1551 },
+    "武汉": { lat:30.5928, lng:114.3055 },
+    "西安": { lat:34.3416, lng:108.9398 },
+    "南京": { lat:32.0603, lng:118.7969 },
+    "重庆": { lat:29.4316, lng:106.9123 },
+    "天津": { lat:39.3434, lng:117.3616 },
+    "苏州": { lat:31.2989, lng:120.5853 },
+    "青岛": { lat:36.0671, lng:120.3826 },
+    "长沙": { lat:28.2282, lng:112.9388 },
+    "厦门": { lat:24.4798, lng:118.0894 },
+    "宁波": { lat:29.8683, lng:121.5440 },
+    "无锡": { lat:31.4912, lng:120.3119 },
+    "合肥": { lat:31.8206, lng:117.2272 },
+    "福州": { lat:26.0745, lng:119.2965 },
+    "济南": { lat:36.6512, lng:117.1201 },
+    "大连": { lat:38.9140, lng:121.6147 },
+    "沈阳": { lat:41.8057, lng:123.4315 },
+    "昆明": { lat:24.8801, lng:102.8329 },
+    "哈尔滨": { lat:45.8038, lng:126.5350 },
+    "石家庄": { lat:38.0428, lng:114.5149 },
+    "南宁": { lat:22.8170, lng:108.3665 },
+    "贵阳": { lat:26.6470, lng:106.6302 },
+    "太原": { lat:37.8706, lng:112.5489 },
+    "兰州": { lat:36.0611, lng:103.8343 },
+    "海口": { lat:20.0440, lng:110.1999 },
+    "南昌": { lat:28.6829, lng:115.8579 },
+    "长春": { lat:43.8171, lng:125.3235 },
+    "常州": { lat:31.8110, lng:119.9745 },
+    "温州": { lat:27.9938, lng:120.6994 }
+  };
+
+  var LIVE = { connected:false, coupons:[], nutrition:{}, meals:null, storeName:null, store:null };
+  var MAIN_KEYWORDS = ["堡","套餐","鸡","鱼","牛","派","麦满分","巨无霸","卷","饭","翅","桶"];
+  function isMainItem(name){ for(var i=0;i<MAIN_KEYWORDS.length;i++){ if(name.indexOf(MAIN_KEYWORDS[i])!==-1) return true; } return false; }
+  function parsePrice(v){ var n=parseFloat(v); return isNaN(n)?0:Math.round(n*100); }
+
+  /* ========== 实时解析 ========== */
+  function parseNutrition(text){
+    var map={}; if(!text) return map;
+    var lines=String(text).split("\n"); var headerSeen=false;
+    for(var i=0;i<lines.length;i++){
+      var line=lines[i].trim(); if(!line) continue;
+      if(!headerSeen){ if(line.indexOf("productName")!==-1||/^\[\d+\]\{/.test(line)){headerSeen=true;continue;} continue; }
+      var parts=line.split(","); if(parts.length<5) continue;
+      var name=parts[0].trim(); var kcal=parseFloat(parts[3]); var protein=parseFloat(parts[4]);
+      if(!name||isNaN(kcal)) continue;
+      map[name]={kcal:Math.round(kcal),protein:isNaN(protein)?0:Math.round(protein*10)/10};
+    }
+    return map;
+  }
+  function matchNutrition(mealName,map){
+    if(map[mealName]) return map[mealName];
+    var trimmed=mealName.replace(/\(.*?\)/g,"").replace(/大套餐|套餐/g,"").trim();
+    if(map[trimmed]) return map[trimmed];
+    var keys=Object.keys(map);
+    for(var i=0;i<keys.length;i++){ var k=keys[i]; if(mealName.indexOf(k)!==-1||(trimmed&&k.indexOf(trimmed)!==-1)) return map[k]; }
+    return null;
+  }
+  function applyLiveNutrition(base){
+    if(!LIVE.connected||!Object.keys(LIVE.nutrition).length) return base;
+    var out={}; Object.keys(base).forEach(function(code){
+      var m=base[code]; var nut=matchNutrition(m.name,LIVE.nutrition);
+      if(nut) out[code]=Object.assign({},m,{kcal:nut.kcal,protein:nut.protein,_official:true}); else out[code]=m;
+    }); return out;
+  }
+  function buildLiveMeals(data){
+    if(!Array.isArray(data)||!data.length) return null;
+    var out={},order=0,matched=0;
+    data.forEach(function(it){
+      var code=it.productCode||it.code||("L"+(order++));
+      var name=it.productName||it.name;
+      var cur=it.currentPrice!=null?it.currentPrice:(it.salePrice!=null?it.salePrice:(it.price!=null?it.price:null));
+      var orig=it.originalPrice!=null?it.originalPrice:cur;
+      if(name==null||cur==null) return;
+      var entry={name:String(name),currentPrice:String(cur),originalPrice:String(orig!=null?orig:cur),discountType:it.discountType||null,kcal:null,protein:null};
+      var nut=matchNutrition(String(name),LIVE.nutrition);
+      if(nut){entry.kcal=nut.kcal;entry.protein=nut.protein;matched++;}
+      out[code]=entry;
+    });
+    return Object.keys(out).length?out:null;
+  }
+
+  /* ========== 比价引擎（与 save_optimizer.py 一致） ========== */
+  function combinations(arr,k){ var out=[]; (function pick(start,chosen){ if(chosen.length===k){out.push(chosen.slice());return;} for(var i=start;i<arr.length;i++){chosen.push(arr[i]);pick(i+1,chosen);chosen.pop();} })(0,[]); return out; }
+  function buildEffective(meals,coupons){
+    var result={};
+    Object.keys(meals).forEach(function(code){
+      var m=meals[code]; var unit=parsePrice(m.currentPrice); var orig=parsePrice(m.originalPrice); if(orig>unit) orig=unit;
+      var entry={code:code,name:m.name,unit_price_cents:unit,orig_price_cents:orig,discount_type:m.discountType,kcal:m.kcal,protein:m.protein,coupon:null,allergens:m.allergens||null,ingredients:m.ingredients||null,veg:!!m.veg,spicy:!!m.spicy};
+      for(var i=0;i<coupons.length;i++){ var c=coupons[i]; var hit=(c.products||[]).some(function(p){return p.productCode===code;}); if(hit){ entry.coupon={couponId:c.couponId,couponCode:c.couponCode,title:c.title,fixed_price_cents:c.price?parsePrice(c.price):null}; break; } }
+      result[code]=entry;
+    });
+    return result;
+  }
+  function unitOf(e){ return e.coupon&&e.coupon.fixed_price_cents?e.coupon.fixed_price_cents:e.unit_price_cents; }
+  function comboCost(combo,effective){
+    var total=0,orig=0,kcal=0,protein=0,hasNutri=false,items=[];
+    Object.keys(combo).forEach(function(code){
+      var qty=combo[code]; var e=effective[code]; var unit=unitOf(e);
+      total+=unit*qty; orig+=e.orig_price_cents*qty;
+      if(e.kcal!=null){kcal+=e.kcal*qty;hasNutri=true;} if(e.protein!=null) protein+=e.protein*qty;
+      items.push({code:code,name:e.name,quantity:qty,unit_price_yuan:unit/100,discount_type:e.discount_type,coupon_title:e.coupon?e.coupon.title:null,official_nutri:e.kcal!=null&&e._official,allergens:e.allergens||null,ingredients:e.ingredients||null});
+    });
+    return {items:items,orig_cents:orig,pay_cents:total,save_cents:orig-total,kcal_total:hasNutri?Math.round(kcal*10)/10:null,protein_total:hasNutri?Math.round(protein*10)/10:null};
+  }
+  function nutritionOk(cost,maxKcal,minProtein){
+    if(maxKcal!=null&&cost.kcal_total!=null&&cost.kcal_total>maxKcal) return false;
+    if(minProtein!=null&&cost.protein_total!=null&&cost.protein_total<minProtein) return false;
+    return true;
+  }
+  function detectTraps(effective,plans,budgetCents){
+    var traps=[],seenCoupon={};
+    Object.keys(effective).forEach(function(code){
+      var e=effective[code],c=e.coupon;
+      if(!c||c.fixed_price_cents==null||e.unit_price_cents<=0) return;
+      if(c.fixed_price_cents>e.unit_price_cents){ var key=c.couponId||c.title; if(!seenCoupon[key]){ seenCoupon[key]=true; traps.push({type:"coupon_overpriced",severity:"high",title:"用券反而更贵：券「"+c.title+"」固定价 "+(c.fixed_price_cents/100).toFixed(1)+" 元 > 单品现价 "+(e.unit_price_cents/100).toFixed(1)+" 元",detail:e.name+" 现价 "+(e.unit_price_cents/100).toFixed(1)+" 元，该券却按 "+(c.fixed_price_cents/100).toFixed(1)+" 元结算——别为凑单硬用这张券。"}); } }
+    });
+    var labels={cheapest:"最便宜",best_value:"最划算",richest:"最丰盛"},seenSide={};
+    ["cheapest","best_value","richest"].forEach(function(planKey){
+      var plan=plans[planKey]; if(!plan) return;
+      plan.items.forEach(function(it){
+        if(isMainItem(it.name)||seenSide[it.name]) return;
+        var noDiscount=!it.coupon_title&&(it.discount_type===null||it.discount_type==="");
+        if(noDiscount){ seenSide[it.name]=true; var save=it.unit_price_yuan*it.quantity; traps.push({type:"side_item",severity:"medium",title:"凑单小食：「"+it.name+"」无任何优惠",detail:"在「"+(labels[planKey]||planKey)+"」方案中，"+it.name+"×"+it.quantity+" 是无券无促销的凑单项；不需要的话可删掉省 "+save.toFixed(1)+" 元。"}); }
+      });
+    });
+    var cheapest=plans.cheapest;
+    if(cheapest&&budgetCents>0){ var pay=Math.round(cheapest.pay_total_yuan*100); var remain=budgetCents-pay; if(remain>0&&remain>=budgetCents*0.3){ traps.push({type:"budget_left",severity:"low",title:"预算没花满：最便宜方案只花 "+cheapest.pay_total_yuan.toFixed(1)+" 元，还剩 "+(remain/100).toFixed(1)+" 元",detail:"可在预算内加购饮料/小食提升体验，或直接选用「最划算 / 最丰盛」方案。"}); } }
+    return traps;
+  }
+  function recommend(meals,coupons,budgetYuan,maxKcal,minProtein,avoidIds,customAvoid){
+    var effective=buildEffective(meals,coupons);
+    // 忌口过滤：仅排除「已知过敏原且命中用户设置」的餐品；无过敏原信息的餐品保留，避免误删
+    var avoidActive=(avoidIds&&avoidIds.length)||(customAvoid&&customAvoid.length);
+    if(avoidActive){
+      Object.keys(effective).forEach(function(code){
+        var meta=meals[code]&&meals[code]._meta; if(!meta) return;
+        var hit=meta.allergens.some(function(a){return (avoidIds||[]).indexOf(a)!==-1;});
+        if(!hit&&(customAvoid||[]).length&&meta.ingredients){ customAvoid.forEach(function(c){ if(meta.ingredients.indexOf(c)!==-1) hit=true; }); }
+        if(hit) delete effective[code];
+      });
+    }
+    var codes=Object.keys(effective); var budgetCents=Math.round(budgetYuan*100); if(budgetCents<=0) budgetCents=99999900;
+    var feasible=[];
+    codes.forEach(function(code){ var unit=unitOf(effective[code]); if(unit<=0) return; for(var qty=1;qty<=3;qty++){ if(unit*qty<=budgetCents) feasible.push((function(){var o={};o[code]=qty;return o;})()); } });
+    var comboArr=combinations(codes,2).concat(combinations(codes,3));
+    comboArr.forEach(function(combo){ var comboDict={},ok=true; combo.forEach(function(code){ if(unitOf(effective[code])<=0){ok=false;return;} comboDict[code]=1; }); if(!ok) return; var total=0; Object.keys(comboDict).forEach(function(code){total+=unitOf(effective[code]);}); if(total<=budgetCents) feasible.push(comboDict); });
+    if(!feasible.length) return {error:"预算过低、菜单为空，或所选忌口过滤后无可用组合",feasible_count:0};
+    var scored=feasible.map(function(combo){ var cost=comboCost(combo,effective); var ratio=cost.pay_cents>0?cost.orig_cents/cost.pay_cents:0; return {combo:combo,cost:cost,ratio:ratio}; });
+    var seen={},unique=[]; scored.forEach(function(s){ var key=JSON.stringify(Object.keys(s.combo).sort())+"|"+s.cost.pay_cents; if(!seen[key]){seen[key]=true;unique.push(s);} });
+    var nutritionPool=unique.filter(function(s){return nutritionOk(s.cost,maxKcal,minProtein);}); var poolBase=nutritionPool.length?nutritionPool:unique;
+    function hasMain(combo){ return Object.keys(combo).some(function(code){return isMainItem(effective[code].name);}); }
+    function fmt(plan){ var ppy=null; if(plan.cost.protein_total!=null&&plan.cost.pay_cents>0){ ppy=Math.round(plan.cost.protein_total/(plan.cost.pay_cents/100)*100)/100; } return {items:plan.cost.items,orig_total_yuan:plan.cost.orig_cents/100,pay_total_yuan:plan.cost.pay_cents/100,save_yuan:plan.cost.save_cents/100,item_count:Object.keys(plan.combo).reduce(function(a,c){return a+plan.combo[c];},0),kcal_total:plan.cost.kcal_total,protein_total:plan.cost.protein_total,protein_per_yuan:ppy}; }
+    var withMain=poolBase.filter(function(s){return hasMain(s.combo);}); var pool=withMain.length?withMain:poolBase; if(!pool.length) return {error:"预算/营养/忌口约束下，无法组合出含主餐的可行方案",feasible_count:0};
+    var cheapest=pool.slice().sort(function(a,b){return a.cost.pay_cents-b.cost.pay_cents;})[0];
+    var bestValue=pool.slice().sort(function(a,b){return b.ratio-a.ratio;})[0];
+    var richest=pool.slice().sort(function(a,b){return b.cost.orig_cents-a.cost.orig_cents;})[0];
+    var plans={cheapest:fmt(cheapest),best_value:fmt(bestValue),richest:fmt(richest)};
+    return {feasible_count:unique.length,nutrition_filtered:nutritionPool.length,nutrition_constraint:{max_kcal:maxKcal,min_protein:minProtein,relaxed:nutritionPool.length===0&&(maxKcal!=null||minProtein!=null)},traps:detectTraps(effective,plans,budgetCents),cheapest:plans.cheapest,best_value:plans.best_value,richest:plans.richest};
+  }
+
+  /* ========== 渲染 ========== */
+  var resultEl=document.getElementById("result");
+  var barsHolder=document.getElementById("barsHolder");
+  var trapsHolder=document.getElementById("trapsHolder");
+  var lastResult=null;
+  function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+  function renderEmpty(){
+    resultEl.innerHTML='<div class="empty"><div class="big">🍔</div><div>设置预算与营养目标，点击「计算最优方案」</div><div class="steps">示例：预算 40 元 · 热量 ≤ 700 kcal · 蛋白 ≥ 25g</div></div>';
+    barsHolder.innerHTML='<div class="empty">先在上方输入参数并计算。</div>';
+    trapsHolder.innerHTML='<div class="empty">先在上方输入参数并计算。</div>';
+  }
+  function planCard(key,plan,opts){
+    var maxKcal=opts.maxKcal,minProtein=opts.minProtein;
+    var kcalOk=plan.kcal_total==null||maxKcal==null||plan.kcal_total<=maxKcal;
+    var protOk=plan.protein_total==null||minProtein==null||plan.protein_total>=minProtein;
+    var nutriHtml="";
+    if(plan.kcal_total!=null||plan.protein_total!=null){
+      nutriHtml='<div class="nutri">';
+      if(plan.kcal_total!=null) nutriHtml+='<span>热量 <b>'+plan.kcal_total+'</b>'+(maxKcal!=null?' <span class="'+(kcalOk?"ok":"over")+'">'+(kcalOk?"达标":"超标")+'</span>':'')+'</span>';
+      if(plan.protein_total!=null) nutriHtml+='<span>蛋白 <b>'+plan.protein_total+'</b>g'+(minProtein!=null?' <span class="'+(protOk?"ok":"over")+'">'+(protOk?"达标":"不足")+'</span>':'')+'</span>';
+      if(plan.protein_per_yuan!=null) nutriHtml+='<span>每元 <b>'+plan.protein_per_yuan+'</b>g</span>';
+      nutriHtml+='</div>';
+    }
+    var itemsHtml='<ul class="items">'+plan.items.map(function(it){
+      var cp=it.coupon_title?' <span class="cp">用券：'+esc(it.coupon_title)+'</span>':"";
+      var off=(it.official_nutri&&LIVE.connected)?' <span class="off">官方营养</span>':"";
+      // 忌口标注：命中用户设置的过敏原/自定义忌口 → 红色「含X」徽标（点击菜品可看详情）
+      var hits=(it.allergens&&dietPrefs)?it.allergens.filter(function(a){return dietPrefs.avoid.indexOf(a)!==-1;}):[];
+      var customHits=(it.ingredients&&dietPrefs)?dietPrefs.custom.filter(function(c){return it.ingredients.indexOf(c)!==-1;}):[];
+      var avoidBadge="";
+      if(hits.length) avoidBadge+='<span class="avoid-badge">含'+hits.map(function(a){return ALLERGEN_NAME[a]||a;}).join("/")+'</span>';
+      if(customHits.length) avoidBadge+='<span class="avoid-badge">含'+esc(customHits.join("/"))+'</span>';
+      return '<li class="li-dish" data-code="'+esc(it.code||"")+'" data-name="'+esc(it.name)+'" title="点击查看成分与过敏原"><span>'+esc(it.name)+' <span class="q">×'+it.quantity+'</span>'+cp+off+avoidBadge+'</span><span class="p">¥'+it.unit_price_yuan.toFixed(1)+'</span></li>';
+    }).join("")+'</ul>';
+    var payLink = PLAN_PAY_LINKS[key];
+    var hasPay = !!(payLink && String(payLink).trim());
+    var cls = "plan"+(opts.top?" top":"")+(hasPay?"":" disabled");
+    var action = hasPay
+      ? '<button class="btn-order" type="button">去官方下单 ›</button>'
+      : '<div class="no-order">该套餐暂未开通官方下单</div>';
+    return '<div class="'+cls+'" data-plan-id="'+esc(key)+'"><span class="tag">'+opts.label+'</span><h3>'+(opts.top?"推荐首选":opts.label)+'</h3><div class="sub">'+plan.item_count+' 件餐品</div><div class="price-row"><span class="pay">¥'+plan.pay_total_yuan.toFixed(2)+'</span><span class="orig">原价 ¥'+plan.orig_total_yuan.toFixed(2)+'</span></div><div class="save">省 ¥'+plan.save_yuan.toFixed(2)+'</div>'+itemsHtml+nutriHtml+action+'</div>';
+  }
+  function barRow(plans,title,key,limit,unit,limitLabel){
+    var order=["cheapest","best_value","richest"],vals={},maxV=1;
+    order.forEach(function(k){ var v=plans[k][key]; vals[k]=v; if(v!=null&&v>maxV) maxV=v; });
+    if(limit!=null&&limit>maxV) maxV=limit;
+    var html='<div class="bar-row"><div class="bar-lbl"><span>'+title+'</span><span class="limit">'+limitLabel+'</span></div><div class="bar-track">';
+    var clsMap={cheapest:"s-cheapest",best_value:"s-best",richest:"s-richest"},nameMap={cheapest:"最便宜",best_value:"最划算",richest:"最丰盛"};
+    order.forEach(function(k){ var v=vals[k]; if(v==null) return; var pct=Math.max(8,Math.min(100,v/maxV*100)); html+='<div class="bar-seg '+clsMap[k]+'" style="width:'+pct+'%" title="'+nameMap[k]+' '+v+unit+'">'+v+'</div>'; });
+    return html+'</div></div>';
+  }
+  function barsHtml(result){
+    var kcalMax=result.nutrition_constraint.max_kcal,protMin=result.nutrition_constraint.min_protein;
+    var kcalLabel=kcalMax!=null?"上限 "+kcalMax+" kcal":"无上限",protLabel=protMin!=null?"下限 "+protMin+" g":"无下限";
+    var plans={cheapest:result.cheapest,best_value:result.best_value,richest:result.richest};
+    return '<h2>营养对比</h2>'+barRow(plans,"总热量 (kcal)","kcal_total",kcalMax," kcal",kcalLabel)+barRow(plans,"总蛋白 (g)","protein_total",protMin," g",protLabel)+'<div class="bar-legend"><span><i style="background:#C8102E"></i>最便宜</span><span><i style="background:#E2572C"></i>最划算</span><span><i style="background:#F2A93B"></i>最丰盛</span></div>';
+  }
+  function trapsHtml(result){
+    if(!result.traps.length) return '<div class="traps" style="border:none;box-shadow:none;padding:0"><div class="no-trap">当前方案未发现明显凑单陷阱。</div></div>';
+    return '<div class="traps" style="border:none;box-shadow:none;padding:0">'+result.traps.map(function(t){ return '<div class="trap '+t.severity+'"><div class="ic">'+(t.severity==="high"?"!":t.severity==="medium"?"i":"OK")+'</div><div class="body"><b>'+esc(t.title)+'</b><div class="detail">'+esc(t.detail)+'</div></div></div>'; }).join("")+'</div>';
+  }
+  function render(result){
+    lastResult=result;
+    if(result.error){ resultEl.innerHTML='<div class="empty"><div class="big">!</div><div>'+esc(result.error)+'</div></div>'; barsHolder.innerHTML=trapsHolder.innerHTML=""; return; }
+    var relaxed=result.nutrition_constraint.relaxed;
+    var relNote=relaxed?'<div class="trap low" style="margin-bottom:14px;border-radius:12px;display:flex;gap:10px;padding:11px 13px;background:var(--green-soft);font-size:13px"><div class="ic">i</div><div class="body"><b>营养约束已放宽</b><div class="detail">当前预算下没有同时满足热量/蛋白目标的组合，以下为最接近方案。</div></div></div>':"";
+    var summary='<div class="summary"><div class="stat'+(relaxed?" warn":" ok")+'"><div class="num">'+result.feasible_count+'<small> 组</small></div><div class="lbl">可行组合</div></div><div class="stat'+(result.nutrition_filtered>0?" ok":" warn")+'"><div class="num">'+result.nutrition_filtered+'<small> 组</small></div><div class="lbl">满足营养约束</div></div><div class="stat'+(result.traps.length?" warn":" ok")+'"><div class="num">'+result.traps.length+'<small> 条</small></div><div class="lbl">凑单陷阱提示</div></div></div>';
+    var plans='<div class="plans">'+planCard("cheapest",result.cheapest,{label:"最便宜",top:false,maxKcal:result.nutrition_constraint.max_kcal,minProtein:result.nutrition_constraint.min_protein})+planCard("best_value",result.best_value,{label:"最划算",top:true,maxKcal:result.nutrition_constraint.max_kcal,minProtein:result.nutrition_constraint.min_protein})+planCard("richest",result.richest,{label:"最丰盛",top:false,maxKcal:result.nutrition_constraint.max_kcal,minProtein:result.nutrition_constraint.min_protein})+'</div>';
+    resultEl.innerHTML=summary+plans+relNote; bindPlanCards();
+    barsHolder.innerHTML=barsHtml(result);
+    trapsHolder.innerHTML=trapsHtml(result);
+  }
+  /* 套餐卡片点击 → 解析下单链接并直接跳转（新标签页打开，无确认/中间页） */
+  function openPlanOrder(id){
+    var cfg=PLAN_PAY_LINKS[id];
+    if(!cfg||!String(cfg).trim()){ toast("该套餐暂未开通官方下单"); return; } // 未配置 → 不可点击（卡片已 disabled）
+    heroHop();
+    toast("正在前往官方下单页…");
+    resolvePlanPayUrl(id).then(function(url){
+      if(url) window.open(url, "_blank", "noopener");
+      else toast("该套餐暂未开通官方下单");
+    });
+  }
+  function bindPlanCards(){
+    resultEl.querySelectorAll(".plan[data-plan-id]").forEach(function(card){
+      var id=card.getAttribute("data-plan-id");
+      var link=PLAN_PAY_LINKS[id];
+      if(!link||!String(link).trim()){ card.classList.add("disabled"); return; } // 未配置付款链接 → 不可点击，避免无效跳转
+      card.addEventListener("click", function(e){
+        if(e.target.closest(".li-dish")) return; // 点击菜品详情时不触发下单跳转
+        openPlanOrder(id);
+      });
+    });
+  }
+
+  /* ========== 运行 / 示例 ========== */
+  function run(){
+    var budget=parseFloat(document.getElementById("budget").value);
+    var kcalRaw=document.getElementById("kcal").value, protRaw=document.getElementById("protein").value;
+    var kcal=kcalRaw===""?null:parseFloat(kcalRaw), prot=protRaw===""?null:parseFloat(protRaw);
+    if(isNaN(budget)||budget<0){ resultEl.innerHTML='<div class="empty"><div class="big">!</div><div>预算格式不对，请输入数字（如 40）。</div></div>'; return; }
+    var meals=mergeMealMeta(applyLiveNutrition(LIVE.meals||MEALS));
+    var coupons=LIVE.meals?[]:COUPONS;
+    // 若勾选「隐藏含忌口菜品」，则把用户设置的过敏原/自定义忌口作为过滤条件传入比价引擎
+    var hideAvoid=document.getElementById("hideAvoid") && document.getElementById("hideAvoid").checked;
+    var avoidIds = hideAvoid?dietPrefs.avoid:[];
+    var customAvoid = hideAvoid?dietPrefs.custom:[];
+    render(recommend(meals,coupons,budget,kcal,prot,avoidIds,customAvoid));
+    switchView("home"); scrollToPanel();
+    heroHop(); toast("已为你算出 3 套方案，点击套餐卡片可直接去官方下单 🍔");
+  }
+  function fillDemo(){ document.getElementById("budget").value="40"; document.getElementById("kcal").value="700"; document.getElementById("protein").value="25"; run(); }
+
+  /* ========== 实时连接 ========== */
+  function setLiveUI(connected,msg){
+    var dot=document.getElementById("liveDot"),status=document.getElementById("liveStatus"),badge=document.getElementById("srcBadge"),pill=document.getElementById("dataPill"),btn=document.getElementById("connectBtn");
+    if(connected){ dot.classList.add("on"); status.textContent="已连接"; badge.textContent="数据源：官方实时"; badge.className="src live"; pill.textContent="官方实时 · 营养/券已更新"; btn.textContent="刷新实时数据"; }
+    else { dot.classList.remove("on"); status.textContent=msg||"未连接"; badge.textContent="数据源：离线示例"; badge.className="src offline"; pill.textContent="离线示例 · 无需 Token"; btn.textContent="连接实时数据"; }
+  }
+  async function apiMcp(name,args){
+    var resp=await fetch("/api/mcp",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name:name,arguments:args||{}})});
+    return await resp.json();
+  }
+  /* 从 MCP 文本/结构化结果里提取支付链接（兼容 payH5Url 在不同字段位置的情况） */
+  function extractPayUrl(text){
+    if(!text) return "";
+    var m=String(text).match(/https?:\/\/[^\s"'\\]+/);
+    return m?m[0]:"";
+  }
+  /* 套餐 → 下单链接解析：实时建单优先，配置地址兜底
+   * 触发真实建单的前提：已连官方 MCP 且已选真实门店（LIVE.store 存在）。
+   * 否则直接返回 PLAN_PAY_LINKS 配置的官方下单页，保证点击始终有效。 */
+  async function resolvePlanPayUrl(planId){
+    var cfg=PLAN_PAY_LINKS[planId]||"";
+    if(LIVE.connected && LIVE.store && LIVE.store.storeCode && lastResult){
+      var plan=lastResult[planId];
+      if(plan && plan.items && plan.items.length){
+        var items=plan.items.filter(function(it){return it.code;}).map(function(it){return {productCode:String(it.code),quantity:it.quantity||1};});
+        if(items.length){
+          try{
+            var r=await apiMcp("create-order",{
+              storeCode:LIVE.store.storeCode,
+              beCode:LIVE.store.beCode,
+              orderType:1,   // 1=到店
+              beType:1,      // 1=到店取餐
+              takeWayCode:"1",
+              items:items
+            });
+            if(r && r.ok){
+              var url=(r.structured && r.structured.data && r.structured.data.payH5Url) || extractPayUrl(r.text||"");
+              if(url) return url;
+            }
+            toast("实时建单失败，已为你打开官方下单页");
+          }catch(e){ toast("实时建单异常，已为你打开官方下单页"); }
+        }
+      }
+    }
+    return cfg; // 离线 / 未选门店：回退到配置的官方下单域名地址
+  }
+  async function connectLive(){
+    var btn=document.getElementById("connectBtn"); btn.disabled=true; btn.textContent="连接中…";
+    try{
+      var r1=await apiMcp("available-coupons",{}), r2=await apiMcp("list-nutrition-foods",{});
+      if(!r1.ok||!r2.ok){ var err=(!r1.ok?r1.error:r2.error)||"实时接口返回错误"; setLiveUI(false,"连接失败"); document.getElementById("menuResult").textContent="⚠ 实时连接失败："+err+"（请确认已通过 mcp-proxy.js 启动本页，而非直接打开文件）"; toast("实时连接失败，已回退离线"); return; }
+      LIVE.coupons=Array.isArray((r1.structured&&r1.structured.data)||[])?(r1.structured&&r1.structured.data):[];
+      var nutriText=(r2.structured&&r2.structured.data)||r2.text||""; if(typeof nutriText!=="string") nutriText=JSON.stringify(nutriText);
+      LIVE.nutrition=parseNutrition(nutriText); LIVE.connected=true; setLiveUI(true); renderLiveCoupons();
+      var applied=applyLiveNutrition(LIVE.meals||MEALS); var matched=Object.keys(applied).filter(function(c){return applied[c]._official;}).length;
+      document.getElementById("nutriStat").innerHTML="✅ 已拉取官方营养条目 <b>"+Object.keys(LIVE.nutrition).length+"</b> 项；当前菜单命中官方营养 <b>"+matched+"</b> 项（其余沿用示例）。";
+      if(document.getElementById("budget").value) run();
+      toast("已接入官方实时数据 ✅");
+    }catch(e){
+      setLiveUI(false,"未连接");
+      showProxyWarn("warn","⚠ 无法连接本地代理："+(e&&e.message?e.message:e)+"。请先运行 <b>node mcp-proxy.js</b>，再用 <b>http://localhost:8787/</b> 打开本页。离线示例功能不受影响。");
+      document.getElementById("menuResult").textContent="⚠ 无法连接本地代理："+(e&&e.message?e.message:e)+"。请先运行 node mcp-proxy.js，再通过 http://localhost:端口 打开本页。";
+      toast("无法连接代理，已回退离线");
+    }finally{ btn.disabled=false; }
+  }
+  function renderLiveCoupons(){
+    var wrap=document.getElementById("liveCouponsWrap"),box=document.getElementById("liveCoupons");
+    if(!LIVE.coupons.length){ wrap.style.display="none"; return; }
+    wrap.style.display="block"; box.innerHTML=LIVE.coupons.map(function(c){ var name=c.couponName||c.title||"优惠券"; var st=c.label||(c.couponStatus==="CAN_GET"?"可领取":""); return '<span class="cc">'+esc(name)+(st?'<span class="st">'+esc(st)+'</span>':'')+'</span>'; }).join("");
+  }
+  async function loadMenu(){
+    var city=document.getElementById("cityInput").value.trim(),kw=document.getElementById("kwInput").value.trim();
+    if(!city){ city=geo.cityName||geo.city||"上海"; }   // 城市为空时回退到当前城市
+    if(!kw){ kw=city; }   // 关键词为空时回退为城市名，避免官方报「城市名或者关键词不能为空」
+    document.getElementById("cityInput").value=city;
+    var res=document.getElementById("menuResult"),sel=document.getElementById("storeSelect"),useBtn=document.getElementById("useStoreBtn");
+    res.innerHTML='<span class="load"><span class="spin"></span>查询门店中…</span>';
+    try{
+      var sr=await apiMcp("query-nearby-stores",{searchType:2,beType:1,city:city,keyword:kw});
+      if(!sr.ok||(sr.structured&&sr.structured.success===false)){ res.innerHTML="⚠ 该城市/关键词未查到门店（"+((sr.structured&&sr.structured.message)||sr.error||"无结果")+"）。已沿用离线示例菜单。"; sel.disabled=true; useBtn.disabled=true; return; }
+      var stores=(sr.structured&&sr.structured.data)||[];
+      if(!Array.isArray(stores)||!stores.length){ res.innerHTML="⚠ 未返回门店列表，已沿用离线示例菜单。"; sel.disabled=true; useBtn.disabled=true; return; }
+      res.innerHTML="✅ 找到 <b>"+stores.length+"</b> 家门店，选择一个后点「用该门店算价」。";
+      sel.disabled=false; useBtn.disabled=false;
+      sel.innerHTML=stores.map(function(s,i){ return '<option value="'+i+'">'+esc(s.storeName||("门店"+i))+" · "+esc(s.address||"")+"</option>"; }).join("");
+      sel._stores=stores;
+    }catch(e){ res.textContent="⚠ 门店查询失败："+(e&&e.message?e.message:e)+"，已沿用离线示例菜单。"; }
+  }
+  async function useStore(){
+    var sel=document.getElementById("storeSelect"),res=document.getElementById("menuResult"),stores=sel._stores;
+    if(!stores) return; var s=stores[sel.value]; if(!s) return;
+    res.innerHTML='<span class="load"><span class="spin"></span>加载该门店菜单与实时算价中…</span>';
+    try{
+      var mr=await apiMcp("query-meals",{storeCode:s.storeCode,beCode:s.beCode||s.storeCode,orderType:1,beType:1});
+      var mealsData=(mr.structured&&mr.structured.data)||[]; var liveMeals=buildLiveMeals(mealsData);
+      if(!liveMeals){ res.innerHTML="⚠ 该门店菜单解析为空，已沿用离线示例菜单。"; LIVE.meals=null; return; }
+      LIVE.meals=liveMeals; LIVE.storeName=s.storeName; LIVE.store={storeCode:s.storeCode, beCode:s.beCode||s.storeCode};
+      document.getElementById("storeName").innerHTML=esc(s.storeName)+'<small>'+esc(s.address||"实时门店")+'</small>';
+      var official=Object.keys(liveMeals).filter(function(c){return liveMeals[c].kcal!=null;}).length;
+      res.innerHTML="✅ 已载入实时菜单 <b>"+Object.keys(liveMeals).length+"</b> 项（其中 <b>"+official+"</b> 项匹配到官方营养），点「计算最优方案」即用真实价格比价。";
+      if(document.getElementById("budget").value) run();
+    }catch(e){ res.textContent="⚠ 菜单加载失败："+(e&&e.message?e.message:e)+"，已沿用离线示例菜单。"; LIVE.meals=null; }
+  }
+
+  /* ========== 视图切换（含场景转场） ========== */
+  var topTabs=[], tabBtns=[], views=["home","nutrition","traps","mine","nearby"];
+  function switchView(name){
+    if(views.indexOf(name)===-1) return;
+    document.querySelectorAll(".view").forEach(function(v){ v.classList.remove("on"); });
+    document.getElementById("view-"+name).classList.add("on");
+    (topTabs.length?topTabs:document.querySelectorAll("#topTabs button")).forEach(function(b){ b.classList.toggle("on",b.dataset&&b.dataset.view===name); });
+    (tabBtns.length?tabBtns:document.querySelectorAll("#tabbar button")).forEach(function(b){ b.classList.toggle("on",b.dataset&&b.dataset.tab===name); });
+    if(name!=="home"){
+      var holder=name==="nutrition"?barsHolder:name==="traps"?trapsHolder:null;
+      if(holder){ if(lastResult&&!lastResult.error){ holder.innerHTML=name==="nutrition"?barsHtml(lastResult):trapsHtml(lastResult); } else if(!holder.innerHTML){ holder.innerHTML='<div class="empty">先在上方输入参数并计算。</div>'; } }
+    }
+    if(name==="nearby"){ ensureLocation(); if(nearbyData.status==="idle"){ loadNearbyStores(); } else { renderNearby(); } } // 进入附近门店：确保定位；首次自动拉取官方门店
+    window.scrollTo(0,0);
+  }
+  function scrollToPanel(){ var p=document.querySelector(".panel"); if(p) p.scrollIntoView({behavior:"smooth",block:"start"}); }
+  function openViewWithHero(name){ heroHop(); transitionTo(name); }
+
+  /* ========== 菜品元数据合并（把过敏原/成分挂到餐品上） ========== */
+  function mergeMealMeta(meals){
+    var out={};
+    Object.keys(meals).forEach(function(code){
+      var m=meals[code], meta=MEAL_META[code]||null;
+      out[code]= meta?Object.assign({},m,{allergens:meta.allergens,ingredients:meta.ingredients,veg:meta.veg,spicy:meta.spicy,_meta:meta}):m;
+    });
+    return out;
+  }
+
+  /* ========== 忌口 / 过敏原：本地持久化 ========== */
+  var DIET_KEY="mcd_diet_prefs_v1";
+  var dietPrefs=loadDiet();
+  function loadDiet(){
+    try{ var s=localStorage.getItem(DIET_KEY); if(s){ var o=JSON.parse(s); return {avoid:Array.isArray(o.avoid)?o.avoid.slice():[],custom:Array.isArray(o.custom)?o.custom.slice():[]}; } }catch(e){}
+    return {avoid:[],custom:[]};
+  }
+  function saveDiet(){ try{ localStorage.setItem(DIET_KEY,JSON.stringify(dietPrefs)); }catch(e){} }
+  function updateDietCount(){
+    var el=document.getElementById("dietCount"); if(!el) return;
+    var n=dietPrefs.avoid.length+dietPrefs.custom.length;
+    el.textContent=n?("已设 "+n+" 项 ›"):"›";
+  }
+
+  /* ========== 定位与附近门店 ========== */
+  var GEO_KEY="mcd_geo_v1";
+  var geo={ state:"init", lat:null, lng:null, city:"上海", cityName:"上海", label:"", estimated:false };
+  var nearbySort="dist", nearbyCurrentId=null;
+  function haversine(lat1,lng1,lat2,lng2){
+    var R=6371, toRad=Math.PI/180;
+    var dLat=(lat2-lat1)*toRad, dLng=(lng2-lng1)*toRad;
+    var a=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(lat1*toRad)*Math.cos(lat2*toRad)*Math.sin(dLng/2)*Math.sin(dLng/2);
+    return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+  }
+  function getCityCenter(city){ return CITY_CENTERS[city]||CITY_CENTERS["上海"]; }
+  function nearbyViewActive(){ var v=document.getElementById("view-nearby"); return v && v.classList.contains("on"); }
+  function ensureLocation(){ if(geo.state==="init"){ requestLocation(); } else { renderGeo(); if(nearbyViewActive()) renderNearby(); } }
+  function initLocation(){ requestLocation(); }
+  /* 定位点 → 最近主要城市（用于官方 query-nearby-stores 的 city 入参自动切换） */
+  function detectNearestCity(lat,lng){
+    var best=null,bd=Infinity;
+    Object.keys(CITY_CENTERS).forEach(function(c){ var p=CITY_CENTERS[c]; var d=haversine(lat,lng,p.lat,p.lng); if(d<bd){ bd=d; best=c; } });
+    return best;
+  }
+  /* 把当前城市同步到首页「城市」输入框与附近页「手动选择城市」下拉 */
+  function syncCityInputs(){
+    var ci=document.getElementById("cityInput"), sel=document.getElementById("citySelect");
+    if(ci) ci.value=geo.cityName||geo.city;
+    if(sel) sel.value=geo.city;
+  }
+  function requestLocation(){
+    geo.state="requesting"; renderGeo();
+    // 1) 已有缓存则先用缓存兜底，避免拒绝后完全无参照
+    try{ var s=localStorage.getItem(GEO_KEY); if(s){ var o=JSON.parse(s); if(o&&o.lat){ geo.lat=o.lat; geo.lng=o.lng; geo.city=o.city||geo.city; geo.cityName=o.cityName||o.cityName; } } }catch(e){}
+    if(!("geolocation" in navigator)){ geo.state="unavailable"; geo.label="当前环境不支持定位（需 https 或 localhost）"; fallbackCity(); return; }
+    var done=false;
+    var timer=setTimeout(function(){ if(!done){ done=true; geo.state="timeout"; geo.label="定位超时"; fallbackCity(); } },8000);
+    navigator.geolocation.getCurrentPosition(function(pos){
+      done=true; clearTimeout(timer);
+      geo.lat=pos.coords.latitude; geo.lng=pos.coords.longitude; geo.state="granted"; geo.estimated=false; geo.label="已定位";
+      // 2) 按定位点自动匹配最近的主要城市并同步到各输入框（城市不再固定）
+      var c=detectNearestCity(geo.lat,geo.lng); if(c){ geo.city=c; geo.cityName=c; }
+      try{ localStorage.setItem(GEO_KEY,JSON.stringify({lat:geo.lat,lng:geo.lng,city:geo.city,cityName:geo.cityName,label:geo.label})); }catch(e){}
+      syncCityInputs(); renderGeo();
+      loadNearbyStores();   // 定位成功 → 自动拉取就近门店（官方真实数据）
+    }, function(err){
+      done=true; clearTimeout(timer);
+      geo.state=(err&&err.code===1)?"denied":"error";
+      geo.label=(geo.state==="denied")?"已拒绝定位授权":"定位失败（"+(err&&err.message||"未知")+"）";
+      fallbackCity();   // 拒绝/失败 → 手动选城兜底（默认城市），并加载该城市门店
+    }, {enableHighAccuracy:false, timeout:7000, maximumAge:600000});
+  }
+  function fallbackCity(){ var c=getCityCenter(geo.city); geo.lat=c.lat; geo.lng=c.lng; geo.estimated=true; syncCityInputs(); renderGeo(); if(nearbyViewActive()) renderNearby(); loadNearbyStores(); }
+  function renderGeo(){
+    var st=document.getElementById("geoState"), sub=document.getElementById("geoSub"), sel=document.getElementById("citySelect");
+    if(!st) return;
+    if(geo.state==="requesting"){ st.className="geo-state warn"; st.textContent="定位中…"; sub.textContent="正在申请定位权限"; }
+    else if(geo.state==="granted"){ st.className="geo-state ok"; st.textContent="已定位 ✓"; sub.textContent="已自动切换到「"+geo.cityName+"」，正在获取附近真实门店"; }
+    else { st.className="geo-state err"; st.textContent=(geo.state==="denied")?"定位被拒绝":"定位失败/不可用"; sub.textContent="已回退手动选城（当前："+geo.cityName+"），可点「重新定位」重试"; }
+    if(sel && sel.value!==geo.city) sel.value=geo.city;
+  }
+  function fmtDist(km){ if(km==null||isNaN(km)) return "—"; return km<1 ? Math.round(km*1000)+"m" : km.toFixed(1)+"km"; }
+  function brandIconOf(b){ return b==="麦当劳"?"🍟":(b==="肯德基"?"🍗":"🍕"); }
+
+  /* ========== 附近门店：接入官方真实数据（query-nearby-stores），含加载中/空数据/失败三态 ========== */
+  var nearbyData={ status:"idle", list:[], message:"", city:"" };   // status: idle | loading | ok | empty | error
+  /* 官方字段归一化：storeName/address/distance/storeCode/beCode/reservation/businessStatus/businessStartTime/businessEndTime（官方未返回评分/电话，缺省如实省略） */
+  function normalizeStore(raw,i){
+    raw=raw||{};
+    var distKm=null;
+    if(raw.distance!=null && raw.distance!==""){
+      var ds=String(raw.distance), v=parseFloat(ds);
+      if(!isNaN(v)){ distKm = /km|千米|公里/i.test(ds) ? v : v/1000; }   // 纯数字按米解析；带 km 单位直接换算
+    }
+    var lat=parseFloat(raw.latitude!=null?raw.latitude:raw.lat), lng=parseFloat(raw.longitude!=null?raw.longitude:raw.lng);
+    var open;
+    if(typeof raw.businessStatus==="boolean"){ open=raw.businessStatus; }   // 官方返回布尔：true=营业中
+    else if(typeof raw.businessStatus==="string"){ open=!/休|暂|关|闭|停|rest|close|false/i.test(raw.businessStatus); }   // 兼容字符串形态
+    else { open=undefined; }
+    var hours = (raw.businessStartTime&&raw.businessEndTime) ? (raw.businessStartTime+"-"+raw.businessEndTime) : "";
+    return {
+      id: raw.storeCode||("st"+i),
+      name: raw.storeName||raw.name||("门店"+(i+1)),
+      address: raw.address||"",
+      distKm: distKm,
+      brand: "麦当劳",
+      storeCode: raw.storeCode||"",
+      beCode: raw.beCode||raw.storeCode||"",
+      reservation: raw.reservation===true,
+      open: open,                 // true=营业中 / false=休息中 / undefined=未返回
+      hours: hours,               // 营业时间，如 06:00-22:00
+      lat: isNaN(lat)?null:lat, lng: isNaN(lng)?null:lng
+    };
+  }
+  function storeOpen(s){ return s.open===true; }
+  function statusPill(s){ if(s.open===true) return {cls:"open",txt:"营业中"}; if(s.open===false) return {cls:"closed",txt:"休息中"}; return {cls:"unknown",txt: s.reservation?"可预约":"营业状态未返回"}; }
+  /* 附近门店查询关键词：官方要求非空，自动流程直接用当前城市名（首页关键词仅用于首页「加载实时菜单」） */
+  function kwForNearby(){ return geo.cityName||geo.city||"上海"; }
+  function loadNearbyStores(){
+    nearbyData.status="loading"; nearbyData.city=geo.cityName||geo.city||"上海"; renderNearby();
+    apiMcp("query-nearby-stores",{searchType:2,beType:1,city:nearbyData.city,keyword:kwForNearby()}).then(function(sr){
+      if(!sr||!sr.ok){ nearbyData.status="error"; nearbyData.message=(sr&&sr.error)||"接口请求失败"; renderNearby(); return; }
+      var body=sr.structured;
+      if(body&&body.success===false){ nearbyData.status="error"; nearbyData.message=(body.message||("官方错误码 "+body.code))+"（"+nearbyData.city+"）"; renderNearby(); return; }
+      var arr=(body&&body.data)||[];
+      if(!Array.isArray(arr)||!arr.length){ nearbyData.status="empty"; renderNearby(); return; }
+      nearbyData.list=arr.map(normalizeStore); nearbyData.status="ok"; renderNearby();
+    }).catch(function(e){
+      nearbyData.status="error"; nearbyData.message=(e&&e.message)?e.message:"网络异常"; renderNearby();
+    });
+  }
+  function sortStores(list){
+    var copy=list.slice();
+    if(nearbySort==="dist") copy.sort(function(a,b){ return ((a.distKm==null)?1:0)-((b.distKm==null)?1:0) || (a.distKm||0)-(b.distKm||0); });
+    else if(nearbySort==="open") copy.sort(function(a,b){ return (storeOpen(b)?1:0)-(storeOpen(a)?1:0) || ((a.distKm==null)?1:0)-((b.distKm==null)?1:0) || (a.distKm||0)-(b.distKm||0); });
+    return copy;
+  }
+  function nearestCardHtml(s,isCur){
+    var pill=statusPill(s);
+    return '<div class="bigic">'+brandIconOf(s.brand)+'</div>'+
+      '<div class="info"><div class="nm">'+esc(s.name)+' <span class="status-pill '+pill.cls+'">'+esc(pill.txt)+'</span></div>'+
+      '<div class="meta">'+(s.distKm!=null?'<span class="dist">'+fmtDist(s.distKm)+'</span> · ':'')+esc(s.address||"")+(s.hours?' · 营业 '+esc(s.hours):'')+(s.reservation?' · 支持预约':'')+'</div>'+
+      (isCur?'<div style="color:var(--green);font-weight:800;font-size:12px;margin-top:6px">✅ 已设为当前门店</div>':'<button class="setcur" type="button">设为当前门店</button>')+
+      '</div>'+
+      '<button class="nav" type="button">导航 ›</button>';
+  }
+  function storeItemHtml(s,isCur){
+    var pill=statusPill(s);
+    return '<li class="'+(isCur?"cur":"")+'" data-id="'+esc(s.id)+'">'+
+      '<div class="li-ic">'+brandIconOf(s.brand)+'</div>'+
+      '<div class="li-info"><div class="li-nm">'+esc(s.name)+'</div>'+
+      '<div class="li-meta">'+(s.distKm!=null?'<span class="dist">'+fmtDist(s.distKm)+'</span> · ':'')+esc(s.address||"")+(s.hours?' · 营业 '+esc(s.hours):'')+' · <span class="status-pill '+pill.cls+'">'+esc(pill.txt)+'</span></div></div>'+
+      '<div class="li-right"><div class="'+(s.brand==="麦当劳"?"li-brand":"li-brand other")+'">'+esc(s.brand)+'</div><button class="nav" type="button" style="padding:6px 10px;min-height:34px;font-size:12px;margin-top:4px">导航</button></div>'+
+      '</li>';
+  }
+  function renderNearby(){
+    var wrap=document.getElementById("nearestCard"), listEl=document.getElementById("storeList");
+    if(!wrap) return;
+    if(nearbyData.status==="loading"){   // 加载中
+      wrap.innerHTML='<div class="nb-state"><span class="spin"></span><span>正在从官方接口获取「'+esc(nearbyData.city)+'」的门店…</span></div>'; listEl.innerHTML=""; return;
+    }
+    if(nearbyData.status==="error"){     // 请求失败：展示官方错误信息 + 重试
+      wrap.innerHTML='<div class="nb-state err"><div>⚠ 门店接口请求失败：'+esc(nearbyData.message)+'</div><button class="setcur" id="nearbyRetry" type="button">重试</button></div>';
+      listEl.innerHTML="";
+      var rb=document.getElementById("nearbyRetry"); if(rb) rb.addEventListener("click",loadNearbyStores);
+      return;
+    }
+    if(nearbyData.status!=="ok"||!nearbyData.list.length){   // 空数据
+      wrap.innerHTML='<div class="nb-state"><div style="font-size:26px">🏪</div><div>「'+esc(nearbyData.city)+'」暂无门店数据，可更换关键词或手动选择城市。</div></div>';
+      listEl.innerHTML=""; return;
+    }
+    var stores=sortStores(nearbyData.list);
+    var near=stores[0];
+    wrap.innerHTML=nearestCardHtml(near, near.id===nearbyCurrentId);
+    listEl.innerHTML=stores.map(function(s){return storeItemHtml(s, s.id===nearbyCurrentId);}).join("");
+    var nav0=wrap.querySelector(".nav"); if(nav0) nav0.addEventListener("click", function(e){ e.stopPropagation(); openNav(near); });
+    var set0=wrap.querySelector(".setcur"); if(set0) set0.addEventListener("click", function(e){ e.stopPropagation(); setCurrentStore(near); });
+    Array.prototype.forEach.call(listEl.querySelectorAll("li"), function(li){
+      var id=li.getAttribute("data-id");
+      li.addEventListener("click", function(){ var s=stores.filter(function(x){return x.id===id;})[0]; if(s) setCurrentStore(s); });
+      var nav=li.querySelector(".nav"); if(nav) nav.addEventListener("click", function(e){ e.stopPropagation(); var s=stores.filter(function(x){return x.id===id;})[0]; if(s) openNav(s); });
+    });
+  }
+  function openNav(s){
+    if(!s) return;
+    var url;
+    if(s.lat&&s.lng){   // 有坐标：直接标点
+      url="https://uri.amap.com/marker?position="+s.lng+","+s.lat+"&name="+encodeURIComponent(s.name)+"&src=mcd&coordinate=gaode&callnative=1";
+    } else {            // 官方未返回坐标：按名称+地址搜索
+      url="https://uri.amap.com/search?keyword="+encodeURIComponent((s.name||"")+" "+(s.address||""))+"&src=mcd&city="+encodeURIComponent(nearbyData.city||geo.cityName||geo.city||"");
+    }
+    toast("正在打开导航："+s.name);
+    window.open(url,"_blank");
+  }
+  function setCurrentStore(s){
+    nearbyCurrentId=s.id; LIVE.storeName=s.name;
+    if(s.storeCode){ LIVE.store={ storeCode:s.storeCode, beCode:s.beCode||s.storeCode }; }   // 真实门店：记录官方编号，供实时算价 / create-order 使用
+    document.getElementById("storeName").innerHTML=esc(s.name)+'<small>'+esc(s.address||"")+(s.distKm!=null?' · '+fmtDist(s.distKm):'')+'</small>';
+    toast("已设为当前门店："+s.name);
+    renderNearby();
+  }
+
+  /* ========== 信息图标弹层：说明性 / 提示性文字默认隐藏，点击 ? / i 展示，再点或点空白处收起 ========== */
+  var INFO_TEXTS={
+    realtime:"点击右上角「连接实时数据」后，经本地代理拉取官方营养(list-nutrition-foods)与可领券(available-coupons)；「加载实时菜单」会经 query-nearby-stores 获取真实门店、query-meals 获取实时菜价。城市已支持按定位自动切换，失败时可手动填写。",
+    city:"城市用于官方「按位置搜索门店」接口(query-nearby-stores)。已授权定位时会按你的位置自动切换为最近的主要城市；定位失败或拒绝授权时可在此手动填写。",
+    about:"本页为「麦门营养管家」WorkBuddy 参赛作品。默认离线示例模式；连接实时数据后，营养来自官方 list-nutrition-foods、可领券来自 available-coupons、门店来自 query-nearby-stores，金额与营养以官方接口为准。本地代理 mcp-proxy.js 持有 Token，浏览器只与本机通信，Token 不进浏览器。",
+    geo:"首次使用会申请浏览器/设备定位权限：授权后自动切换到距离最近的主要城市并加载该城市门店；拒绝或失败时回退为下方手动选择城市。位置仅在本机用于城市匹配与距离展示，不会上传。",
+    nearby:"门店列表来自官方接口 query-nearby-stores 的真实数据（名称、地址、官方距离、可预约/营业状态）。点击列表项可设为「当前门店」，会同步到首页门店栏并在连实时后用于算价与下单；官方未返回评分/营业时间/电话等字段时将如实省略。"
+  };
+  function toggleInfoPop(btn){
+    var pop=document.getElementById("infoPop"); if(!pop) return;
+    var key=btn.getAttribute("data-info");
+    if(pop.classList.contains("show") && pop._key===key){ pop.classList.remove("show"); return; }   // 再次点击图标收起
+    pop._key=key; pop.textContent=INFO_TEXTS[key]||""; pop.classList.add("show");
+    var r=btn.getBoundingClientRect(), pw=pop.offsetWidth||280;
+    var left=Math.min(Math.max(12, r.left+r.width/2-pw/2), window.innerWidth-pw-12);
+    var top=r.bottom+8, h=pop.offsetHeight||80;
+    if(top+h>window.innerHeight-8) top=r.top-h-8;   // 底部空间不足时向上弹出
+    pop.style.left=Math.max(12,left)+"px"; pop.style.top=Math.max(8,top)+"px";
+  }
+  document.addEventListener("click",function(e){
+    var dot=e.target&&e.target.closest?e.target.closest(".info-dot"):null;
+    if(dot){ toggleInfoPop(dot); return; }                      // 点击图标：开/收
+    var pop=document.getElementById("infoPop");
+    if(pop && pop.classList.contains("show") && !pop.contains(e.target)) pop.classList.remove("show");   // 点击空白处收起
+  });
+
+  /* ========== 菜品详情弹层（成分 / 过敏原） ========== */
+  function showModal(id){ var m=document.getElementById(id); if(m) m.classList.add("show"); }
+  function closeModal(id){ var m=document.getElementById(id); if(m) m.classList.remove("show"); }
+  function openDish(code){
+    var meals=LIVE.meals||MEALS, m=meals[code]; if(!m) return;
+    var meta=m._meta||MEAL_META[code]||null, body=document.getElementById("dishBody");
+    var price="¥"+parseFloat(m.currentPrice||0).toFixed(1);
+    var html='<div class="dish-hero"><div class="di">🍔</div><div><div class="dn">'+esc(m.name)+'</div><div class="dp">'+price+(m.discountType?' · '+esc(m.discountType):'')+'</div></div></div>';
+    html+='<div class="dish-sec">过敏原 / 成分提示</div>';
+    if(meta){
+      var allIds=meta.allergens||[];
+      if(allIds.length){ html+='<div class="dish-allergens">'+allIds.map(function(a){ var avoid=dietPrefs.avoid.indexOf(a)!==-1; return '<span class="ab '+(avoid?"avoid":"safe")+'">'+ALLERGEN_NAME[a]+'</span>'; }).join("")+'</div>'; }
+      else html+='<div class="dish-allergens"><span class="ab safe">无主要过敏原</span></div>';
+      var tags=[]; if(meta.veg) tags.push('<span class="ab safe">素食友好</span>'); if(meta.spicy) tags.push('<span class="ab avoid">含辣</span>');
+      if(tags.length) html+='<div class="dish-allergens">'+tags.join("")+'</div>';
+      var hits=allIds.filter(function(a){return dietPrefs.avoid.indexOf(a)!==-1;});
+      var customHits=dietPrefs.custom.filter(function(c){return meta.ingredients&&meta.ingredients.indexOf(c)!==-1;});
+      if(hits.length||customHits.length){ html+='<div class="dish-warn">⚠ 该菜品含你设置的忌口：'+hits.map(function(a){return ALLERGEN_NAME[a];}).concat(customHits).join("、")+'，请谨慎选择。</div>'; }
+      html+='<div class="dish-sec">主要成分</div><div class="dish-ing">'+esc(meta.ingredients)+'</div>';
+    } else {
+      html+='<div class="dish-allergens"><span class="ab unknown">暂无过敏原/成分信息</span></div>';
+      html+='<div class="dish-ing">实时菜单未提供该菜品的过敏原与成分数据；请以麦当劳官方公示为准。</div>';
+    }
+    body.innerHTML=html; showModal("dishModal");
+  }
+
+  /* ========== 忌口 / 过敏原 弹层 ========== */
+  function openAllergen(){
+    var box=document.getElementById("allergenChips");
+    box.innerHTML=ALLERGEN_OPTIONS.map(function(a){
+      var on=dietPrefs.avoid.indexOf(a.id)!==-1;
+      return '<button type="button" class="chip'+(on?" on":"")+'" data-id="'+a.id+'">'+a.icon+' '+a.name+' <span class="ck">'+(on?"✓":"+")+'</span></button>';
+    }).join("");
+    Array.prototype.forEach.call(box.querySelectorAll(".chip"), function(c){
+      c.addEventListener("click", function(){ var id=c.getAttribute("data-id"), i=dietPrefs.avoid.indexOf(id);
+        if(i===-1) dietPrefs.avoid.push(id); else dietPrefs.avoid.splice(i,1);
+        c.classList.toggle("on"); c.querySelector(".ck").textContent=c.classList.contains("on")?"✓":"+"; });
+    });
+    renderCustomTags(); showModal("allergenModal");
+  }
+  function renderCustomTags(){
+    var box=document.getElementById("customTags"); if(!box) return;
+    box.innerHTML = dietPrefs.custom.length
+      ? dietPrefs.custom.map(function(c,i){ return '<span class="ctag">'+esc(c)+' <b data-i="'+i+'">✕</b></span>'; }).join("")
+      : '<span style="font-size:12px;color:var(--muted)">（暂无自定义忌口）</span>';
+    Array.prototype.forEach.call(box.querySelectorAll("b"), function(b){ b.addEventListener("click", function(){ dietPrefs.custom.splice(+b.getAttribute("data-i"),1); renderCustomTags(); }); });
+  }
+  function addCustom(){
+    var inp=document.getElementById("customInput"), v=inp.value.trim(); if(!v) return;
+    if(dietPrefs.custom.indexOf(v)===-1) dietPrefs.custom.push(v);
+    inp.value=""; renderCustomTags();
+  }
+  function saveDietFromModal(){
+    saveDiet(); updateDietCount(); closeModal("allergenModal"); toast("忌口设置已保存 ✅");
+    // 若当前结果已按忌口过滤，则重新计算以应用最新设置
+    if(lastResult && !lastResult.error && document.getElementById("hideAvoid") && document.getElementById("hideAvoid").checked) run();
+  }
+  function resetDiet(){ dietPrefs.avoid=[]; dietPrefs.custom=[]; saveDiet(); updateDietCount(); openAllergen(); toast("已清空忌口设置"); }
+
+  /* ========== 事件绑定 ========== */
+  topTabs=document.querySelectorAll("#topTabs button");
+  tabBtns=document.querySelectorAll("#tabbar button");
+  // 顶部 tab 在 index 中未渲染，用底部导航为主；保留兼容
+  tabBtns.forEach(function(b){ b.addEventListener("click",function(){ openViewWithHero(b.dataset.tab); }); });
+  document.getElementById("goCalc").addEventListener("click",function(){ heroHop(); scrollToPanel(); document.getElementById("budget").focus(); });
+  document.getElementById("goDemo").addEventListener("click",fillDemo);
+  /* 功能宫格（营养搭配/领券省钱/凑单陷阱/一键下单/活动日历）入口已移除 */
+  document.getElementById("walletPay").addEventListener("click",function(){ toast("演示：接入麦当劳 MCP 后跳转支付。"); });
+  document.getElementById("storeBtn").addEventListener("click",function(){ openViewWithHero("nearby"); });
+  document.getElementById("connectBtn").addEventListener("click",connectLive);
+  document.getElementById("menuBtn").addEventListener("click",loadMenu);
+  document.getElementById("useStoreBtn").addEventListener("click",useStore);
+  document.getElementById("runBtn").addEventListener("click",run);
+  document.getElementById("demoBtn").addEventListener("click",fillDemo);
+
+  /* —— 定位与附近门店 事件 —— */
+  document.getElementById("geoRetry").addEventListener("click",requestLocation);
+  var citySel=document.getElementById("citySelect");
+  Object.keys(CITY_CENTERS).forEach(function(c){ var o=document.createElement("option"); o.value=c; o.textContent=c; citySel.appendChild(o); });
+  citySel.value=geo.city;
+  citySel.addEventListener("change",function(){ geo.city=citySel.value; geo.cityName=citySel.value; fallbackCity(); });
+  document.getElementById("sortSeg").addEventListener("click",function(e){ var b=e.target.closest("button[data-sort]"); if(!b) return; nearbySort=b.getAttribute("data-sort"); Array.prototype.forEach.call(this.querySelectorAll("button"),function(x){x.classList.toggle("on",x===b);}); renderNearby(); });
+
+  /* —— 忌口 / 过敏原 事件 —— */
+  document.getElementById("dietItem").addEventListener("click",openAllergen);
+  document.getElementById("allergenClose").addEventListener("click",function(){ closeModal("allergenModal"); });
+  document.getElementById("allergenSave").addEventListener("click",saveDietFromModal);
+  document.getElementById("allergenReset").addEventListener("click",resetDiet);
+  document.getElementById("customInput").addEventListener("keydown",function(e){ if(e.key==="Enter"){ e.preventDefault(); addCustom(); } });
+  document.getElementById("dishClose").addEventListener("click",function(){ closeModal("dishModal"); });
+  document.getElementById("dishClose2").addEventListener("click",function(){ closeModal("dishModal"); });
+  Array.prototype.forEach.call(document.querySelectorAll(".modal-mask"), function(mask){
+    mask.addEventListener("click", function(e){ if(e.target===mask) mask.classList.remove("show"); });
+  });
+
+  /* —— 菜品列表点击查看详情（成分/过敏原）—— */
+  resultEl.addEventListener("click",function(e){ var li=e.target.closest(".li-dish"); if(li) openDish(li.getAttribute("data-code")); });
+
+  /* —— 隐藏含忌口菜品 开关：切换后重新计算 —— */
+  var hideEl=document.getElementById("hideAvoid"); if(hideEl) hideEl.addEventListener("change",function(){ if(lastResult && !lastResult.error) run(); });
+
+  /* ========== 启动 ========== */
+  renderEmpty();
+  checkProxy();
+  updateDietCount();   // 渲染「我的」中忌口设置条目计数
+  initLocation();      // 首次使用：申请定位权限（失败/拒绝自动回退手动城市）
+})();
+</script>
+</body>
+</html>

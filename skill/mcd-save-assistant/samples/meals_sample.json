@@ -1,0 +1,9 @@
+{
+  "920215": {"name": "培根安格斯厚牛堡大套餐", "currentPrice": "55.5", "originalPrice": "65.5", "discountType": "随单购麦金卡优惠", "kcal": 890, "protein": 41.0},
+  "9900008169": {"name": "双层深海鳕鱼堡", "currentPrice": "25", "originalPrice": "26.5", "discountType": "促销优惠", "kcal": 480, "protein": 22.0},
+  "520860": {"name": "咔滋咔滋脆鸡腿堡", "currentPrice": "26", "originalPrice": "26", "discountType": null, "kcal": 540, "protein": 25.0},
+  "6102": {"name": "苹果片一袋(60g)", "currentPrice": "7", "originalPrice": "7", "discountType": null, "kcal": 100, "protein": 0.5},
+  "920216": {"name": "麦辣鸡腿堡套餐", "currentPrice": "33", "originalPrice": "38", "discountType": "促销优惠", "kcal": 800, "protein": 26.0},
+  "920217": {"name": "中薯条", "currentPrice": "12", "originalPrice": "12", "discountType": null, "kcal": 340, "protein": 4.0},
+  "920218": {"name": "可乐中杯", "currentPrice": "8", "originalPrice": "8", "discountType": null, "kcal": 190, "protein": 0.0}
+}
