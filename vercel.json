@@ -1,15 +1,10 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "version": 2,
   "framework": null,
   "buildCommand": null,
   "outputDirectory": null,
   "functions": {
-    "api/mcp.js": {
-      "runtime": "nodejs22.x",
-      "memory": 256,
-      "maxDuration": 30
-    }
+    "api/mcp.js": { "memory": 256, "maxDuration": 30 }
   },
   "headers": [
     {
